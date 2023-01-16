@@ -10,13 +10,14 @@ import { expressJwtSecret } from 'jwks-rsa';
 import { expressMiddleware } from '@apollo/server/express4';
 import { expressjwt, GetVerificationKey } from 'express-jwt';
 import { makeExecutableSchema } from '@graphql-tools/schema';
+import { PubSub } from 'graphql-subscriptions';
 import { useServer } from 'graphql-ws/lib/use/ws';
+import { Algorithm } from 'jsonwebtoken';
 
 dotenv.config();
 
 import { resolvers } from './api/graphql/resolvers';
 import { typeDefs } from './api/graphql/schema';
-import { PubSub } from 'graphql-subscriptions';
 
 interface MyContext {
   token?: string;
@@ -56,16 +57,16 @@ const checkJwt = expressjwt({
     cache: true,
     rateLimit: true,
     jwksRequestsPerMinute: 5,
-    jwksUri: 'https://whatupug.auth0.com/.well-known/jwks.json',
+    jwksUri: process.env.JWKS_URI || '',
   }) as GetVerificationKey,
-  audience: 'http://c4-game-server',
-  issuer: 'https://whatupug.auth0.com/',
-  algorithms: ['RS256'],
+  audience: process.env.JWT_AUDIENCE,
+  issuer: process.env.JWT_ISSUER,
+  algorithms: [process.env.JWT_ALGORITHM as Algorithm],
 });
 
 async function startServer() {
   await server.start();
-  // app.use(checkJwt);
+  app.use(checkJwt);
   app.use(
     '/api',
     cors<cors.CorsRequest>(),
@@ -73,7 +74,6 @@ async function startServer() {
     expressMiddleware(server, {
       context: async ({ req }) => ({
         token: req.headers.token,
-        // pubsub: new PubSub(),
       }),
     }),
   );
