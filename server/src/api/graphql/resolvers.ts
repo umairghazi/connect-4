@@ -8,20 +8,21 @@ const chatController = new ChatController();
 const userController = new UserController();
 
 export const resolvers = {
-  // Query: {
-  //   getMessages: chatController.getMessages,
-  // },
+  Query: {
+    getChatMessages: (_root: any, args: any, context: any, info: any) =>
+      chatController.getChatMessages({ args }),
+  },
   Mutation: {
     createUser: (_root: any, args: any, context: any, info: any) =>
       userController.createUser({ args }),
     postChatMessage: (_root: any, args: any, context: any, info: any) =>
       chatController.postChatMessage({ args }),
   },
-  // Subscription: {
-  //   messages: {
-  //     subscribe: () => {
-  //       return pubsub?.asyncIterator(['MESSAGE']);
-  //     },
-  //   },
-  // },
+  Subscription: {
+    message: {
+      subscribe: () => {
+        return pubsub?.asyncIterator(['MESSAGE']);
+      },
+    },
+  },
 };

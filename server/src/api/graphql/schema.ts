@@ -1,14 +1,10 @@
 export const typeDefs = `#graphql
 
 type Message {
-  id: String
-  userId: String
-  messageText: String
-  timestamp: String
-}
-
-type Query {
-  getMessages: [Message]
+  _id: String
+  _userId: String
+  message: String
+  create_date: String
 }
 
 type CreateUserResult {
@@ -19,12 +15,16 @@ type PostChatMessageResult {
   id: String
 }
 
+type Query {
+  getChatMessages: [Message]
+}
+
 type Mutation {
   createUser(name: String, email: String): CreateUserResult
   postChatMessage(userId: String, message: String, gameId: String): PostChatMessageResult
 }
 
-# type Subscription {
-#   messages: Message
-# }
+type Subscription {
+  message: Message
+}
 `;

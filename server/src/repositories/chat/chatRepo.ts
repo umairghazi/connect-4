@@ -1,14 +1,17 @@
 import { Db, ObjectId } from 'mongodb';
 import { BaseMongoRepo } from '../../infrastructure';
 
-export interface IChatRepo {
-  postChatMessage(options: PostChatMessageRepoOptions): Promise<{ id: ObjectId | null }>;
+interface GetChatMessageRepoOptions {
 }
-
 interface PostChatMessageRepoOptions {
   userId: string;
   message: string;
   gameId: string;
+}
+
+export interface IChatRepo {
+  getChatMessages(options: GetChatMessageRepoOptions): Promise<any>;
+  postChatMessage(options: PostChatMessageRepoOptions): Promise<{ id: ObjectId | null }>;
 }
 
 export class ChatRepo extends BaseMongoRepo implements IChatRepo {
@@ -16,12 +19,19 @@ export class ChatRepo extends BaseMongoRepo implements IChatRepo {
     super(db, 'chat-data');
   }
 
+  getChatMessages(options: GetChatMessageRepoOptions): Promise<any> {
+    // const { userId, message, gameId } = options;
+
+    const result = super.executeQuery({});
+
+    return result;
+  }
+
   postChatMessage(options: PostChatMessageRepoOptions): Promise<{ id: ObjectId | null }> {
     const { userId, message, gameId } = options;
 
     const result = super.create({
-      _userId: new ObjectId(userId),
-      // gameId: new ObjectId(gameId),
+      _userId: userId,
       message,
     });
 
