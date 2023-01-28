@@ -1,6 +1,6 @@
 import bodyParser from 'body-parser';
 import cors from 'cors';
-import express from 'express';
+import express, { Request, Response } from 'express';
 import http from 'http';
 import * as dotenv from 'dotenv';
 import { ApolloServer } from '@apollo/server';
@@ -18,6 +18,7 @@ dotenv.config();
 
 import { resolvers } from './api/graphql/resolvers';
 import { typeDefs } from './api/graphql/schema';
+import { newUserHook } from './api/rest/newUserHook';
 
 interface MyContext {
   token?: string;
@@ -52,21 +53,21 @@ const server = new ApolloServer<MyContext>({
   ],
 });
 
-const checkJwt = expressjwt({
-  secret: expressJwtSecret({
-    cache: true,
-    rateLimit: true,
-    jwksRequestsPerMinute: 5,
-    jwksUri: process.env.JWKS_URI || '',
-  }) as GetVerificationKey,
-  audience: process.env.JWT_AUDIENCE,
-  issuer: process.env.JWT_ISSUER,
-  algorithms: [process.env.JWT_ALGORITHM as Algorithm],
-});
+// const checkJwt = expressjwt({
+//   secret: expressJwtSecret({
+//     cache: true,
+//     rateLimit: true,
+//     jwksRequestsPerMinute: 5,
+//     jwksUri: process.env.JWKS_URI || '',
+//   }) as GetVerificationKey,
+//   audience: process.env.JWT_AUDIENCE,
+//   issuer: process.env.JWT_ISSUER,
+//   algorithms: [process.env.JWT_ALGORITHM as Algorithm],
+// });
 
 async function startServer() {
   await server.start();
-  app.use(checkJwt);
+  // app.use(checkJwt);
   app.use(
     '/api',
     cors<cors.CorsRequest>(),
@@ -77,6 +78,9 @@ async function startServer() {
       }),
     }),
   );
+  // app.use(bodyParser.json());
+  // app.use(bodyParser.urlencoded({ extended: true }));
+  // app.post('/new-user-hook', newUserHook);
 
   await httpServer.listen({ port: 4000 });
   console.log(`🚀 Server ready at http://localhost:4000/api`);

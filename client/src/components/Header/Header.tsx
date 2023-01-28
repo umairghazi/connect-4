@@ -1,9 +1,8 @@
-import { useAuth0 } from "@auth0/auth0-react";
-import { AppBar, Button, Container, FormControlLabel, Switch, Toolbar, Typography } from "@mui/material"
-import { styled } from '@mui/material/styles';
-import { Box } from "@mui/system";
 import { useContext } from "react"
-import { ColorModeContext } from "../../contexts"
+import { Box, AppBar, Button, FormControlLabel, Switch, Toolbar, Typography } from "@mui/material"
+import { styled } from '@mui/material/styles';
+
+import { ColorModeContext, LocalAuthContext } from "../../contexts"
 
 const MaterialUISwitch = styled(Switch)(({ theme }) => ({
   width: 62,
@@ -53,9 +52,9 @@ const MaterialUISwitch = styled(Switch)(({ theme }) => ({
 }));
 
 export const Header = (): JSX.Element => {
-  const { logout } = useAuth0()
+  const { logout } = useContext(LocalAuthContext)
   const { setColorMode, colorMode } = useContext(ColorModeContext)
-  
+
   const handleLogoutClicked = () => logout()
   const handleColorModeChange = () => setColorMode(colorMode === 'dark' ? 'light' : 'dark')
 
@@ -68,7 +67,9 @@ export const Header = (): JSX.Element => {
           control={<MaterialUISwitch sx={{ m: 1 }} checked={colorMode === 'dark'} onChange={handleColorModeChange} />}
           label=""
         />
-        <Button onClick={handleLogoutClicked}>Logout</Button>
+        <Button onClick={handleLogoutClicked}>
+          <Typography variant="caption">Logout</Typography>
+        </Button>
       </Toolbar>
     </AppBar>
   )

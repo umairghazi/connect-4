@@ -4,9 +4,11 @@ export const MESSAGE_SUBSCRIPTION = gql`
   subscription MESSAGE_SUBSCRIPTION {
     message {
       _id
-      _userId
+      userId
       create_date
       message
+      picture
+      username
     }
   }
 `;

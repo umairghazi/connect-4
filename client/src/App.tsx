@@ -1,21 +1,20 @@
-import { createBrowserHistory } from "history"
+import { ApolloProvider } from "@apollo/client";
 
-import { AuthWrapper, ApolloWrapper, AppWrapper } from './components';
-import { ColorModeProvider } from "./contexts";
+import { AppWrapper } from './components';
+import { ColorModeProvider, LocalAuthProvider } from "./contexts";
+import { client } from "./utils/Apollo";
 
 import './global.css';
 
-const history = createBrowserHistory()
-
 export const App = () => {
   return (
-    <AuthWrapper history={history}>
-      <ApolloWrapper>
+    <ApolloProvider client={client}>
+      <LocalAuthProvider>
         <ColorModeProvider>
           <AppWrapper />
         </ColorModeProvider>
-      </ApolloWrapper>
-    </AuthWrapper>
+      </LocalAuthProvider>
+    </ApolloProvider>
   );
 }
 
