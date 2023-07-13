@@ -9,14 +9,14 @@ const userController = new UserController();
 
 export const resolvers = {
   Query: {
-    messages: (_: any, args: any) => chatController.getChatMessages(args),
     getUser: (_: any, args: any) => userController.getUser(args),
+    messages: (_: any, args: any) => chatController.getChatMessages(args),
   },
   Mutation: {
     loginUser: (_: any, args: any) => userController.loginUser(args),
+    postChatMessage: (_: any, args: any) => chatController.postChatMessage(args),
     registerUser: (_: any, args: any) => userController.registerUser(args),
     setUserStatus: (_: any, args: any) => userController.setUserStatus(args),
-    postChatMessage: (_: any, args: any) => chatController.postChatMessage(args),
   },
   Subscription: {
     message: {

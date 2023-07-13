@@ -12,6 +12,20 @@ export const GET_USER = gql`
     }
   }
 `;
+
+export const GET_ONLINE_USERS = gql`
+  query GetOnlineUsers {
+    getOnlineUsers {
+      _id
+      email
+      firstName
+      lastName
+      displayName
+      avatar
+    }
+  }
+`;
+
 export function useGetUser(options?: any) {
   return useLazyQuery(GET_USER, options)
 }

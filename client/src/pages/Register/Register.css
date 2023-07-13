@@ -1,4 +1,4 @@
-.login-container {
+.register-container {
   overflow: hidden;
   position: absolute;
   width: 100%;
@@ -9,6 +9,6 @@
   align-items: center;
 }
 
-.login-container > *{
+.register-container > *{
   margin-bottom: 20px !important;
 }

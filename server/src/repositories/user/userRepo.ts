@@ -3,11 +3,6 @@ import jwt from 'jsonwebtoken';
 import { Db, ObjectId } from 'mongodb';
 import { BaseMongoRepo } from '../../infrastructure';
 
-interface SetUserStatusRepoOptions {
-  userId: string;
-  email: string;
-}
-
 interface RegisterUserRepoOptions {
   email: string;
   password: string;
@@ -20,6 +15,15 @@ interface RegisterUserRepoOptions {
 export interface LoginUserRepoOptions {
   email: string;
   password: string;
+}
+
+export interface GetUserRepoOptions {
+  token: string;
+}
+
+interface SetUserStatusRepoOptions {
+  email: string;
+  isOnline: boolean;
 }
 
 export interface LoginUserResult {
@@ -47,7 +51,7 @@ export interface UserEntity {
 export interface IUserRepo {
   registerUser(options: RegisterUserRepoOptions): Promise<RegisterUserResult>;
   loginUser(options: LoginUserRepoOptions): Promise<LoginUserResult>;
-  setUserStatus(options: SetUserStatusRepoOptions): Promise<{ id: ObjectId | null }>;
+  setUserStatus(options: SetUserStatusRepoOptions): Promise<{ count: number }>;
 }
 
 export class UserRepo extends BaseMongoRepo implements IUserRepo {
@@ -105,7 +109,7 @@ export class UserRepo extends BaseMongoRepo implements IUserRepo {
     throw new Error('Couldnt find the user');
   }
 
-  async getUser(options: any): Promise<any> {
+  async getUser(options: GetUserRepoOptions): Promise<UserEntity | null> {
     const { token } = options;
     const tokenData = jwt.decode(token);
     if (!tokenData) throw new Error('Unable to get user data');
@@ -114,13 +118,9 @@ export class UserRepo extends BaseMongoRepo implements IUserRepo {
     return super.getOne<UserEntity>({ email });
   }
 
-  setUserStatus(options: SetUserStatusRepoOptions): Promise<{ id: ObjectId | null }> {
-    const { email } = options;
+  async setUserStatus(options: SetUserStatusRepoOptions): Promise<{ count: number }> {
+    const { email, isOnline } = options;
 
-    const result = super.create({
-      email,
-    });
-
-    return result;
+    return super.updateOne({ email }, { isOnline });
   }
 }

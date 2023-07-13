@@ -1,2 +1,4 @@
 export * from './useLogin.hook'
 export * from './usePostChatMessage.hook'
+export * from './useRegister.hook'
+export * from './useSetUserStatus.hook'

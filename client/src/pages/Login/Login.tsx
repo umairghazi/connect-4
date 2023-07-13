@@ -1,9 +1,9 @@
 import { EmailRounded, Password } from "@mui/icons-material"
-import { Button, InputAdornment, TextField } from "@mui/material"
-import { ChangeEvent, KeyboardEvent, MouseEvent, useContext, useEffect, useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { Button, InputAdornment, TextField, Typography } from "@mui/material"
+import { KeyboardEvent, useCallback, useContext, useEffect, useState } from "react"
+import { Link, useNavigate } from "react-router-dom"
 
-import { useLoginUserMutation } from "../../api"
+import { useLoginUserMutation, useSetUserStatusMutation } from "../../api"
 import { Loading } from "../../components"
 import { LocalAuthContext } from "../../contexts"
 
@@ -15,29 +15,26 @@ export const Login = () => {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
 
-  const handleUsernameChange = (evt: ChangeEvent<HTMLInputElement>) => setEmail(evt.target.value)
-  const handlePasswordChange = (evt: ChangeEvent<HTMLInputElement>) => setPassword(evt.target.value)
-
   const [loginUser, { data: loginUserData, loading: loginUserLoading, error: loginUserErr }] = useLoginUserMutation()
+  const [setUserStatus, { data: userStatusData, loading: userStatusLoading, error: userStatusErr }] = useSetUserStatusMutation()
 
-  const login = async () => {
+  const login = useCallback(async () => {
     await loginUser({
       variables: {
         email,
         password
       }
     })
-  }
+    await setUserStatus({
+      variables: {
+        email,
+        isOnline: true
+      }
+    })
+  }, [email, loginUser, password, setUserStatus])
 
-  const handleLogin = async (evt: MouseEvent<HTMLButtonElement>) => {
-    login()
-  }
-  const handleSubmit = (evt: KeyboardEvent<HTMLDivElement>) => {
-    if (evt.code === 'Enter') {
-      login()
-    }
-  }
-
+  const handleLogin = useCallback(() => login(), [login])
+  const handleSubmit = useCallback((evt: KeyboardEvent<HTMLDivElement>) => evt.code === 'Enter' && login(), [login])
 
   useEffect(() => {
     if (isLoggedIn) {
@@ -52,7 +49,7 @@ export const Login = () => {
       setIsLoggedIn(true);
       updateLoginInfo(token, user)
     }
-  }, [loginUserData, loginUserErr, loginUserLoading, setIsLoggedIn, updateLoginInfo])
+  }, [loginUserData, loginUserErr, loginUserLoading, setIsLoggedIn, setUserStatus, updateLoginInfo])
 
   if (loginUserLoading) {
     return <Loading />
@@ -60,44 +57,48 @@ export const Login = () => {
 
   return (
     <div className="login-container">
-      <div className="email-container">
-        <TextField
-          onChange={handleUsernameChange}
-          value={email}
-          label="Email"
-          onKeyDown={handleSubmit}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="end">
-                <EmailRounded />
-                &nbsp;
-              </InputAdornment>
-            ),
-          }}
-        />
-      </div>
-      <div className="password-container">
-        <TextField
-          onChange={handlePasswordChange}
-          value={password}
-          label="Password"
-          type="password"
-          onKeyDown={handleSubmit}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="end">
-                <Password />
-                &nbsp;
-              </InputAdornment>
-            ),
-          }}
-        />
-      </div>
-      <div className="login-btn-container">
-        <Button variant="contained" onClick={handleLogin}>
+      <div className="heading-container">
+        <Typography variant="h3">
           Login
-        </Button>
+        </Typography>
       </div>
+      <TextField
+        onChange={(e) => setEmail(e.target.value)}
+        value={email}
+        label="Email"
+        onKeyDown={handleSubmit}
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="end">
+              <EmailRounded />
+              &nbsp;
+            </InputAdornment>
+          ),
+        }}
+      />
+      <TextField
+        onChange={(e) => setPassword(e.target.value)}
+        value={password}
+        label="Password"
+        type="password"
+        onKeyDown={handleSubmit}
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="end">
+              <Password />
+              &nbsp;
+            </InputAdornment>
+          ),
+        }}
+      />
+      <Button variant="contained" onClick={handleLogin}>
+        Login
+      </Button>
+      <Typography variant="subtitle2">
+        <Link to="/register">
+          Register Here
+        </Link>
+      </Typography>
     </div>
   )
 }

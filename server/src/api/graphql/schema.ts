@@ -19,11 +19,11 @@ type User {
 }
 
 type SetUserStatusResult {
-  id: String
+  success: Boolean
 }
 
 type RegisterUserResult {
-  id: String
+  user: User
   token: String
 }
 
@@ -42,10 +42,10 @@ type Query {
 }
 
 type Mutation {
-  registerUser(email: String, password: String, firstName: String, lastName: String, displayName: String, avatar: String): RegisterUserResult
   loginUser(email: String, password: String): LoginUserResult
-  setUserStatus(name: String, email: String): SetUserStatusResult
   postChatMessage(userId: String, message: String, username: String, picture: String): PostChatMessageResult
+  registerUser(email: String, password: String, firstName: String, lastName: String, displayName: String, avatar: String): RegisterUserResult
+  setUserStatus(email: String, isOnline: Boolean): SetUserStatusResult
 }
 
 type Subscription {
