@@ -1,27 +1,29 @@
 import bodyParser from 'body-parser';
 import cors from 'cors';
-import express, { Request, Response } from 'express';
+import express from 'express';
 import http from 'http';
+import jwt from 'jsonwebtoken';
 import * as dotenv from 'dotenv';
 import { ApolloServer } from '@apollo/server';
 import { ApolloServerPluginDrainHttpServer } from '@apollo/server/plugin/drainHttpServer';
 import { WebSocketServer } from 'ws';
-import { expressJwtSecret } from 'jwks-rsa';
 import { expressMiddleware } from '@apollo/server/express4';
-import { expressjwt, GetVerificationKey } from 'express-jwt';
 import { makeExecutableSchema } from '@graphql-tools/schema';
 import { PubSub } from 'graphql-subscriptions';
 import { useServer } from 'graphql-ws/lib/use/ws';
-import { Algorithm } from 'jsonwebtoken';
 
 dotenv.config();
 
 import { resolvers } from './api/graphql/resolvers';
 import { typeDefs } from './api/graphql/schema';
-import { newUserHook } from './api/rest/newUserHook';
 
-interface MyContext {
+interface ApolloContext {
   token?: string;
+}
+
+interface JwtData {
+  userId: string;
+  email: string;
 }
 
 const app = express();
@@ -37,7 +39,7 @@ const wsServer = new WebSocketServer({
 
 const serverCleanup = useServer({ schema }, wsServer);
 
-const server = new ApolloServer<MyContext>({
+const server = new ApolloServer<ApolloContext>({
   schema,
   plugins: [
     ApolloServerPluginDrainHttpServer({ httpServer }),
@@ -53,38 +55,34 @@ const server = new ApolloServer<MyContext>({
   ],
 });
 
-// const checkJwt = expressjwt({
-//   secret: expressJwtSecret({
-//     cache: true,
-//     rateLimit: true,
-//     jwksRequestsPerMinute: 5,
-//     jwksUri: process.env.JWKS_URI || '',
-//   }) as GetVerificationKey,
-//   audience: process.env.JWT_AUDIENCE,
-//   issuer: process.env.JWT_ISSUER,
-//   algorithms: [process.env.JWT_ALGORITHM as Algorithm],
-// });
-
 async function startServer() {
   await server.start();
-  // app.use(checkJwt);
+
   app.use(
     '/api',
     cors<cors.CorsRequest>(),
     bodyParser.json(),
     expressMiddleware(server, {
-      context: async ({ req }) => ({
-        token: req.headers.token,
-      }),
+      context: async ({ req }) => {
+        const token = req.headers?.authorization?.split(' ')?.[1] || '';
+
+        const jwtData = jwt.decode(token);
+
+        const { userId, email } = (jwtData as JwtData) || {};
+        return { token, email, userId };
+      },
     }),
   );
-  // app.use(bodyParser.json());
-  // app.use(bodyParser.urlencoded({ extended: true }));
-  // app.post('/new-user-hook', newUserHook);
+
+  app.use(bodyParser.json());
+  app.use(bodyParser.urlencoded({ extended: true }));
 
   await httpServer.listen({ port: 4000 });
+
   console.log(`🚀 Server ready at http://localhost:4000/api`);
   console.log(`🚀 Subscription endpoint ready at ws://localhost:4000/api`);
 }
+
 export const pubsub = new PubSub();
+
 startServer();

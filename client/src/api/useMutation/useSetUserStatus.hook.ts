@@ -1,8 +1,8 @@
 import { gql, useMutation } from "@apollo/client";
 
 export const SET_USER_STATUS = gql`
-  mutation SetUserStatus($email: String, $isOnline: Boolean) {
-    setUserStatus(email: $email, isOnline: $isOnline) {
+  mutation SetUserStatus($email: String, $isActive: Boolean) {
+    setUserStatus(email: $email, isActive: $isActive) {
       success
     }
   }

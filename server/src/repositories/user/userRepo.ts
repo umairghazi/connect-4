@@ -2,6 +2,7 @@ import { hash, compare } from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { Db, ObjectId } from 'mongodb';
 import { BaseMongoRepo } from '../../infrastructure';
+import { NoPaginationOptions } from '../../interface';
 
 interface RegisterUserRepoOptions {
   email: string;
@@ -18,12 +19,17 @@ export interface LoginUserRepoOptions {
 }
 
 export interface GetUserRepoOptions {
-  token: string;
+  token?: string;
+  email?: string;
 }
 
 interface SetUserStatusRepoOptions {
   email: string;
-  isOnline: boolean;
+  isActive: boolean;
+}
+
+export interface GetActiveUsersRepoOptions {
+  email: string;
 }
 
 export interface LoginUserResult {
@@ -52,6 +58,7 @@ export interface IUserRepo {
   registerUser(options: RegisterUserRepoOptions): Promise<RegisterUserResult>;
   loginUser(options: LoginUserRepoOptions): Promise<LoginUserResult>;
   setUserStatus(options: SetUserStatusRepoOptions): Promise<{ count: number }>;
+  getActiveUsers(params: GetActiveUsersRepoOptions): Promise<UserEntity[]>;
 }
 
 export class UserRepo extends BaseMongoRepo implements IUserRepo {
@@ -105,22 +112,42 @@ export class UserRepo extends BaseMongoRepo implements IUserRepo {
           token,
         };
       }
+      throw new Error('Invalid password');
     }
     throw new Error('Couldnt find the user');
   }
 
-  async getUser(options: GetUserRepoOptions): Promise<UserEntity | null> {
-    const { token } = options;
-    const tokenData = jwt.decode(token);
-    if (!tokenData) throw new Error('Unable to get user data');
+  async getUser(options: GetUserRepoOptions): Promise<UserEntity | null | undefined> {
+    const { token, email } = options;
+    if (token) {
+      const tokenData = jwt.decode(token);
+      if (!tokenData) throw new Error('Unable to get user data');
+      const { email } = tokenData as { [key: string]: string };
+      return super.getOne<UserEntity>({ email });
+    }
 
-    const { email } = tokenData as { [key: string]: string };
-    return super.getOne<UserEntity>({ email });
+    if (email) {
+      return super.getOne<UserEntity>({ email });
+    }
   }
 
   async setUserStatus(options: SetUserStatusRepoOptions): Promise<{ count: number }> {
-    const { email, isOnline } = options;
+    const { email, isActive } = options;
+    return super.updateOne({ email }, { isActive });
+  }
 
-    return super.updateOne({ email }, { isOnline });
+  async getActiveUsers(params: GetActiveUsersRepoOptions): Promise<UserEntity[]> {
+    const { email } = params;
+    if (!email) throw new Error('Email is missing');
+
+    return super.getList<UserEntity>(
+      {
+        isActive: true,
+        email: {
+          $ne: email,
+        },
+      },
+      { limit: 100, page: 1 },
+    );
   }
 }

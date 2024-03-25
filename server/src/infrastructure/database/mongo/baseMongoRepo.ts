@@ -8,6 +8,10 @@ interface UpdateOperator {
   $inc?: any;
 }
 
+export interface CreateResult {
+  id: ObjectId | null;
+}
+
 interface IBaseMongoRepo {
   getById<T>(id: string): Promise<T | null>;
   getByIds<T>(id: Array<string>): Promise<T[]>;
@@ -17,7 +21,7 @@ interface IBaseMongoRepo {
   executeQuery<T>(query: object): Promise<Array<T[]>>;
   executeAggregate<T>(query: Array<any>): Promise<T[]>;
   executeAggregateStream<T>(query: Array<any>): Promise<AggregationCursor<T>>;
-  create(doc: object): Promise<any>;
+  create(doc: object): Promise<CreateResult>;
   updateById<T>(id: string, update: object): Promise<T | null>;
   updateOne(query: object, update: object): Promise<{ count: number }>;
   updateMany<T>(query: object, update: T, operator?: UpdateOperator): Promise<{ count: number }>;
@@ -110,7 +114,7 @@ export class BaseMongoRepo implements IBaseMongoRepo {
     return collection.aggregate(stages) as unknown as AggregationCursor<T>;
   }
 
-  async create(doc: object): Promise<{ id: ObjectId | null }> {
+  async create(doc: object): Promise<CreateResult> {
     const collection = await this._collection;
 
     if (!doc) {

@@ -7,11 +7,12 @@ import { createClient } from "graphql-ws";
 const { REACT_APP_APOLLO_SERVER_URL, REACT_APP_APOLLO_SERVER_WS_URL } = process.env || {}
 
 const authLink = setContext(async (_, { headers }) => {
-  // const token = await getAccessTokenSilently();
+  const cookies = document.cookie.split('=');
+  const c4Token = cookies[0] === 'c4-token' ? cookies[1] : '';
   return {
     headers: {
       ...headers,
-      // authorization: token ? `Bearer ${token}` : ""
+      authorization: `Bearer ${c4Token}`
     }
   }
 })

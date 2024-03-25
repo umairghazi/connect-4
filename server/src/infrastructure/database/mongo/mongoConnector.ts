@@ -18,6 +18,7 @@ class MongoConnector {
   }
 
   private async _createConnection(url: string): Promise<MongoClient> {
+    console.log(url);
     const client = MongoClient.connect(url);
 
     client

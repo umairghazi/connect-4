@@ -27,7 +27,7 @@ interface IChatController {
 
 export class ChatController implements IChatController {
   public async getChatMessages(params: GetMessageParams): Promise<any> {
-    const { userId, startTime, endTime } = params;
+    const { userId, startTime, endTime } = params || {};
 
     const result = await chatRepo.getChatMessages({
       userId,
@@ -39,7 +39,7 @@ export class ChatController implements IChatController {
   }
 
   public async postChatMessage(params: PostMessageParams): Promise<{ id: ObjectId | null }> {
-    const { userId, message, username } = params;
+    const { userId, message, username } = params || {};
 
     const messageObj = {
       userId,

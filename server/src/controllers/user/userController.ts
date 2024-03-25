@@ -1,4 +1,5 @@
 import { MongoConection } from '../../infrastructure';
+import { IContext } from '../../interface/IContext';
 import { LoginUserResult, UserEntity, UserRepo } from '../../repositories';
 
 interface RegisterUserParams {
@@ -21,7 +22,7 @@ interface GetUserParams {
 
 interface SetUserStatusParams {
   email: string;
-  isOnline: boolean;
+  isActive: boolean;
 }
 
 interface RegisterUserResponse {
@@ -67,14 +68,16 @@ export class UserController implements IUserController {
     return userRepo.loginUser({ email, password });
   }
 
-  public async getUser(params: GetUserParams): Promise<UserEntity | null> {
+  public async getUser(params: GetUserParams): Promise<UserEntity | null | undefined> {
     const { token } = params;
     return userRepo.getUser({ token });
   }
 
   public async setUserStatus(params: SetUserStatusParams): Promise<{ success: boolean }> {
-    const { email, isOnline } = params;
-    const result = await userRepo.setUserStatus({ email, isOnline });
+    const { email, isActive } = params;
+    if (!email) throw new Error('Email is required');
+    const result = await userRepo.setUserStatus({ email, isActive });
+
     if (result?.count === 1) {
       return {
         success: true,
@@ -82,5 +85,17 @@ export class UserController implements IUserController {
     } else {
       throw new Error('Could not update user status');
     }
+  }
+
+  public async getActiveUsers(_: unknown, context: IContext): Promise<UserEntity[]> {
+    const { email } = context;
+
+    if (!email) throw new Error('Email is missing');
+
+    const getActiveUsersRepoParams = {
+      email,
+    };
+
+    return userRepo.getActiveUsers(getActiveUsersRepoParams);
   }
 }

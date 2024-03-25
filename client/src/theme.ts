@@ -3,7 +3,8 @@ import { createTheme } from '@mui/material/styles';
 
 const typography = {
   fontFamily: [
-    '-apple-system',
+    'Inter',
+    'system-ui',
     'BlinkMacSystemFont',
     '"Segoe UI"',
     'Roboto',
@@ -17,6 +18,13 @@ const typography = {
 }
 
 export const lightTheme = createTheme({
+  components: {
+    MuiButtonBase: {
+      defaultProps: {
+        disableRipple: true,
+      },
+    },
+  },
   typography,
   palette: {
     mode: 'light',
