@@ -1,6 +1,7 @@
 import { useCallback, useContext } from "react"
-import { User, useCreateChallengeMutation } from "../../api"
+import { User, useCreateGameMutation } from "../../api"
 import { LocalAuthContext } from "../../contexts"
+import { getInitialBoard, serializeBoard } from "../../utils/game.utils"
 
 type Participant = Pick<User, 'email' | 'displayName'>
 interface ParticipantsProps {
@@ -11,17 +12,17 @@ export const Participants = (props: ParticipantsProps) => {
   const { user } = useContext(LocalAuthContext)
   const { email: player1Email } = user || {}
 
-  const [createChallenge] = useCreateChallengeMutation()
+  const [createGame] = useCreateGameMutation()
 
-  const handleChallenge = useCallback(async (user: Participant) => {
-    await createChallenge({ variables: { player1Email, player2Email: user.email }})
+  const handleGame = useCallback(async (user: Participant) => {
+    await createGame({ variables: { player1Email, player2Email: user.email, gameState: serializeBoard(getInitialBoard()) } })
 
-  }, [createChallenge, player1Email])
+  }, [createGame, player1Email])
 
   return (
     <div className="wrapper">
       {props.activeUsers.map((user, index) => (
-        <div key={index} onClick={handleChallenge.bind(null, user)}>{user.displayName}</div>
+        <div key={index} onClick={handleGame.bind(null, user)}>{user.displayName}</div>
       ))}
     </div>
   )

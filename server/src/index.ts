@@ -52,6 +52,18 @@ const server = new ApolloServer<ApolloContext>({
         };
       },
     },
+    {
+      // async requestDidStart(context) {
+      // const query = context.request.query?.replace(/\s+/g, ' ').trim();
+      // const variables = JSON.stringify(context.request.variables, null, 2);
+      // console.log(new Date().toISOString(), '- [Request Started]');
+      // console.log(query);
+      // console.log(variables);
+      // console.log(context.request.operationName);
+      // console.log('-------------------');
+      // return;
+      // },
+    },
   ],
 });
 

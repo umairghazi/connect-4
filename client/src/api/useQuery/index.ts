@@ -1,3 +1,3 @@
-export * from './useGetChatMessages.hook'
-export * from './useGetUser.hook'
-export * from './useGetChallenge.hook'
+export * from './useChat.hook'
+export * from './useUser.hook'
+export * from './useGame.hook'

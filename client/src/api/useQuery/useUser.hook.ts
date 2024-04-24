@@ -3,7 +3,7 @@ import { gql, useLazyQuery } from "@apollo/client";
 export const GET_USER = gql`
   query getUser($token: String) {
     getUser(token: $token) {
-      _id
+      id
       email
       firstName
       lastName
@@ -16,7 +16,7 @@ export const GET_USER = gql`
 export const GET_ACTIVE_USERS = gql`
   query getActiveUsers {
     getActiveUsers {
-      _id
+      id
       email
       firstName
       lastName
@@ -27,7 +27,7 @@ export const GET_ACTIVE_USERS = gql`
 `;
 
 export interface User {
-  _id: string;
+  id: string;
   email: string;
   firstName: string;
   lastName: string;

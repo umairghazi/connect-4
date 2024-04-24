@@ -1,8 +1,9 @@
 import { hash, compare } from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { Db, ObjectId } from 'mongodb';
+import { GraphQLError } from 'graphql';
 import { BaseMongoRepo } from '../../infrastructure';
-import { NoPaginationOptions } from '../../interface';
+import { IUserEntity } from '../../interface';
 
 interface RegisterUserRepoOptions {
   email: string;
@@ -21,9 +22,10 @@ export interface LoginUserRepoOptions {
 export interface GetUserRepoOptions {
   token?: string;
   email?: string;
+  _id?: ObjectId;
 }
 
-interface SetUserStatusRepoOptions {
+export interface SetUserStatusRepoOptions {
   email: string;
   isActive: boolean;
 }
@@ -33,32 +35,20 @@ export interface GetActiveUsersRepoOptions {
 }
 
 export interface LoginUserResult {
-  user: UserEntity;
+  user: IUserEntity;
   token: string;
 }
 
 export interface RegisterUserResult {
-  id: ObjectId | null;
+  id: string;
   token: string;
-}
-
-export interface UserEntity {
-  _id: ObjectId | null;
-  email: string;
-  password: string;
-  firstName: string;
-  lastName: string;
-  displayName: string;
-  avatar: string;
-  create_date: string;
-  update_date: string;
 }
 
 export interface IUserRepo {
   registerUser(options: RegisterUserRepoOptions): Promise<RegisterUserResult>;
   loginUser(options: LoginUserRepoOptions): Promise<LoginUserResult>;
   setUserStatus(options: SetUserStatusRepoOptions): Promise<{ count: number }>;
-  getActiveUsers(params: GetActiveUsersRepoOptions): Promise<UserEntity[]>;
+  getActiveUsers(params: GetActiveUsersRepoOptions): Promise<IUserEntity[]>;
 }
 
 export class UserRepo extends BaseMongoRepo implements IUserRepo {
@@ -66,13 +56,20 @@ export class UserRepo extends BaseMongoRepo implements IUserRepo {
     super(db, 'user-data');
   }
 
+  /**
+   * Register User
+   * @param {RegisterUserRepoOptions} options
+   * @returns {Promise<RegisterUserResult>}
+   */
   async registerUser(options: RegisterUserRepoOptions): Promise<RegisterUserResult> {
     const { email, password, firstName, lastName, displayName, avatar } = options;
 
-    const oldUser = await super.getOne({ email });
+    const existingUser = await super.getOne({ email });
 
-    if (oldUser) {
-      throw new Error('Email already in use');
+    if (existingUser) {
+      throw new GraphQLError('Email is already in use', {
+        extensions: { code: 'BAD_USER_INPUT' },
+      });
     }
 
     const encryptedPassword = await hash(password, 10);
@@ -91,17 +88,26 @@ export class UserRepo extends BaseMongoRepo implements IUserRepo {
     });
 
     return {
-      ...registerUserResult,
+      id: registerUserResult?.id?.toString() ?? '',
       token,
     };
   }
 
+  /**
+   * Login User
+   * @param {LoginUserRepoOptions} options
+   * @returns {Promise<LoginUserResult>}
+   */
   async loginUser(options: LoginUserRepoOptions): Promise<LoginUserResult> {
     const { email, password } = options;
 
-    const user = await super.getOne<UserEntity>({ email });
-    if (user) {
+    if (!email || !password) throw new Error('Email or password is missing');
+
+    const user = await super.getOne<IUserEntity>({ email });
+
+    if (user && user.password) {
       const isValidPassword = await compare(password, user.password);
+
       if (isValidPassword) {
         const token = jwt.sign({ userId: user._id, email }, 'token_key', {
           expiresIn: '24h',
@@ -112,35 +118,64 @@ export class UserRepo extends BaseMongoRepo implements IUserRepo {
           token,
         };
       }
+
       throw new Error('Invalid password');
     }
-    throw new Error('Couldnt find the user');
+
+    throw new Error("Couldn't find the user");
   }
 
-  async getUser(options: GetUserRepoOptions): Promise<UserEntity | null | undefined> {
-    const { token, email } = options;
+  /**
+   * Get User
+   * @param {GetUserRepoOptions} options
+   * @returns {(Promise<UserEntity | null | undefined>)}
+   */
+  async getUser(options: GetUserRepoOptions): Promise<IUserEntity | null> {
+    const { token, email, _id } = options;
+
     if (token) {
       const tokenData = jwt.decode(token);
+
       if (!tokenData) throw new Error('Unable to get user data');
-      const { email } = tokenData as { [key: string]: string };
-      return super.getOne<UserEntity>({ email });
+
+      const { email } = tokenData as Record<string, string>;
+
+      return super.getOne<IUserEntity>({ email });
     }
 
     if (email) {
-      return super.getOne<UserEntity>({ email });
+      return super.getOne<IUserEntity>({ email });
     }
+
+    if (_id) {
+      return super.getOne<IUserEntity>({ _id });
+    }
+
+    return null;
   }
 
+  /**
+   * Set User Status
+   * @param {SetUserStatusRepoOptions} options
+   * @returns {Promise<{ count: number }>}
+   */
   async setUserStatus(options: SetUserStatusRepoOptions): Promise<{ count: number }> {
     const { email, isActive } = options;
+
     return super.updateOne({ email }, { isActive });
   }
 
-  async getActiveUsers(params: GetActiveUsersRepoOptions): Promise<UserEntity[]> {
+  /**
+   * Get Active Users
+   * @param {GetActiveUsersRepoOptions} params
+   * @returns {Promise<IUserEntity[]>}
+   */
+  async getActiveUsers(params: GetActiveUsersRepoOptions): Promise<IUserEntity[]> {
     const { email } = params;
+
     if (!email) throw new Error('Email is missing');
 
-    return super.getList<UserEntity>(
+    return super.getList<IUserEntity>(
       {
         isActive: true,
         email: {

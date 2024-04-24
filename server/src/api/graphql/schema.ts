@@ -1,21 +1,25 @@
 export const typeDefs = `#graphql
 
 type Message {
-  _id: String
+  id: String
   userId: String
   message: String
-  username: String
-  picture: String
-  create_date: String
+  timestamp: String
+  createDate: String
+  updateDate: String
+  user: UserDTO
 }
 
-type User {
-  _id: String
+type UserDTO {
+  id: String
   email: String
   firstName: String
   lastName: String
   displayName: String
   avatar: String
+  createDate: String
+  updateDate: String
+  isActive: Boolean
 }
 
 type SetUserStatusResult {
@@ -23,12 +27,12 @@ type SetUserStatusResult {
 }
 
 type RegisterUserResult {
-  user: User
+  user: UserDTO
   token: String
 }
 
 type LoginUserResult {
-  user: User
+  user: UserDTO
   token: String
 }
 
@@ -41,36 +45,45 @@ type UserActivity {
   isActive: Boolean
 }
 
-type Challenge {
+type Game {
   gameId: String
   player1Id: String
   player2Id: String
   player1Email: String
   player2Email: String
   status: String
+  gameState: String
+  playerTurn: String
   createDate: String
   updateDate: String
 }
 
 
 type Query {
+  # Auth
+  getUser(token: String, email: String, id: String): UserDTO
+  getActiveUsers: [UserDTO]
   messages: [Message]
-  getUser(token: String): User
-  getActiveUsers: [User]
-  getChallenge(email: String): Challenge
+  getGame(gameId: String, email: String): Game
+  checkChallenge(email: String): Game
 }
 
 type Mutation {
+  # Auth
   loginUser(email: String, password: String): LoginUserResult
-  postChatMessage(userId: String, message: String, username: String, picture: String): PostChatMessageResult
   registerUser(email: String, password: String, firstName: String, lastName: String, displayName: String, avatar: String): RegisterUserResult
+  # Chat
+  postLobbyChatMessage(userId: String, message: String): PostChatMessageResult
+  postGameChatMessage(userId: String, message: String, username: String, picture: String): PostChatMessageResult
+  # Game
+  createGame(player1Email: String, player2Email: String, gameState: String): Game
+
   setUserStatus(email: String, isActive: Boolean): SetUserStatusResult
-  createChallenge(player1Email: String, player2Email: String): Challenge
 }
 
 type Subscription {
   message: Message
   userActivity: UserActivity
-  checkChallenge: Challenge
+  checkGame: Game
 }
 `;

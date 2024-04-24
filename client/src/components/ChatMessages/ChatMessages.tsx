@@ -1,13 +1,6 @@
 import { List } from "@mui/material"
 import { ChatMessage } from "./ChatMessage"
-
-interface Message {
-  _id: string
-  date: string
-  message: string
-  picture: string
-  username: string
-}
+import { Message } from "../../api"
 
 interface ChatMessagesProps {
   messages: Message[]
@@ -20,7 +13,7 @@ export const ChatMessages = (props: ChatMessagesProps) => {
     <List>
       {(messages).map((message) => {
         return (
-          <ChatMessage key={Math.random()} message={message.message} picture={message.picture} username={message.username} />
+          <ChatMessage key={Math.random()} message={message.message} picture={message?.user?.avatar} username={message?.user?.displayName} />
         )
       })}
     </List>

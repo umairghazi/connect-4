@@ -1,25 +1,26 @@
 import { pubsub } from '../..';
 import { MongoConection } from '../../infrastructure';
-import { UserRepo } from '../../repositories';
-import { Challenge, GameRepo } from '../../repositories/game/gameRepo';
+import { UserRepo, GameRepo, GameEntity } from '../../repositories';
 
-interface CreateChallengeParams {
+interface CreateGameParams {
   player1Email: string;
   player2Email: string;
+  gameState: string;
 }
-interface CreateChallengeResult {
+interface CreateGameResult {
   player1Email: string;
   player2Email: string;
   gameId: string;
   status: string;
 }
-interface GetChallengeParams {
+interface GetGameParams {
   email: string;
+  gameId: string;
 }
 
 interface IGameController {
-  createChallenge: (params: CreateChallengeParams) => Promise<CreateChallengeResult>;
-  getChallenge: (params: GetChallengeParams) => Promise<Challenge | null>;
+  createGame: (params: CreateGameParams) => Promise<void>;
+  getGame: (params: GetGameParams) => Promise<GameEntity | null>;
 }
 
 const mongoConection = MongoConection.default.db;
@@ -27,8 +28,8 @@ const gameRepo = new GameRepo(mongoConection);
 const userRepo = new UserRepo(mongoConection);
 
 export class GameController implements IGameController {
-  public async createChallenge(params: CreateChallengeParams): Promise<any> {
-    const { player1Email, player2Email } = params;
+  public async createGame(params: CreateGameParams): Promise<void> {
+    const { player1Email, player2Email, gameState } = params;
 
     const player1 = await userRepo.getUser({ email: player1Email });
     const player2 = await userRepo.getUser({ email: player2Email });
@@ -37,57 +38,76 @@ export class GameController implements IGameController {
       throw new Error('Challenger or challenged player not found.');
     }
 
-    const existingChallenge = await gameRepo.getChallenge({ player1, player2 });
+    const existingGame = await gameRepo.getGame({
+      player1Email: player1.email,
+      player2Email: player2.email,
+    });
 
-    if (existingChallenge) {
+    if (existingGame?.length) {
+      const game = existingGame[0];
       pubsub?.publish('CHALLENGE', {
-        checkChallenge: {
-          gameId: existingChallenge._id.toString(),
-          player1Id: existingChallenge.player1Id,
-          player2Id: existingChallenge.player2Id,
-          player1Email: existingChallenge.player1Email,
-          player2Email: existingChallenge.player2Email,
-          status: existingChallenge.status,
-          createDate: existingChallenge.create_date,
-          updateDate: existingChallenge.update_date,
+        checkGame: {
+          gameId: game._id.toString(),
+          player1Id: game.player1Id,
+          player2Id: game.player2Id,
+          player1Email: game.player1Email,
+          player2Email: game.player2Email,
+          status: game.status,
+          gameState: game.gameState,
+          playerTurn: game.player1Id,
+          createDate: game.create_date,
+          updateDate: game.update_date,
         },
       });
       return;
     }
 
-    const response = await gameRepo.createChallenge({ player1, player2 });
+    const response = await gameRepo.createGame({ player1, player2, gameState });
 
     if (!response?.id) {
       throw new Error('Problem creating game');
     }
 
     pubsub?.publish('CHALLENGE', {
-      checkChallenge: {
+      checkGame: {
         gameId: response.id.toString(),
         player1Id: player1?._id?.toString(),
         player2Id: player2?._id?.toString(),
         player1Email: player1?.email,
         player2Email: player2?.email,
         status: 'STARTED',
+        gameState: '',
+        playerTurn: player1?._id?.toString() || '',
         createDate: Date.now().toString(),
         updateDate: Date.now().toString(),
       },
     });
   }
 
-  public async getChallenge(params: GetChallengeParams): Promise<any> {
-    const { email } = params;
-    const challenge = await gameRepo.getChallengeForPlayer({ email });
-    if (!challenge) return null;
+  public async getGame(params: GetGameParams): Promise<any> {
+    const { gameId, email } = params;
+
+    const game = await gameRepo.getGame({ gameId, player1Email: email });
+
+    if (!game?.length) return null;
+
+    const gameData = game[0];
+
     return {
-      gameId: challenge?._id?.toString(),
-      player1Id: challenge?.player1Id?.toString(),
-      player2Id: challenge?.player2Id?.toString(),
-      player1Email: challenge?.player1Email,
-      player2Email: challenge?.player2Email,
-      status: challenge?.status,
-      createDate: challenge?.create_date?.toString(),
-      updateDate: challenge?.update_date?.toString(),
+      _id: gameData?._id,
+      player1Id: gameData?.player1Id,
+      player2Id: gameData?.player2Id,
+      player1Email: gameData?.player1Email,
+      player2Email: gameData?.player2Email,
+      status: gameData?.status,
+      gameState: gameData?.gameState,
+      playerTurn: gameData?.playerTurn,
+      createDate: gameData?.create_date?.toString(),
+      updateDate: gameData?.update_date?.toString(),
     };
+  }
+
+  public async checkChallenge(params: any): Promise<GameEntity | null> {
+    return null;
   }
 }

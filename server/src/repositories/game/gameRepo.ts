@@ -1,34 +1,34 @@
 import { Db, ObjectId } from 'mongodb';
 import { BaseMongoRepo, CreateResult } from '../../infrastructure';
-import { UserEntity } from '../user';
+// import { UserEntity } from '../user';
 
-interface CreateChallengeRepoOptions {
-  player1: UserEntity;
-  player2: UserEntity;
+interface CreateGameRepoOptions {
+  player1: any;
+  player2: any;
+  gameState: string;
 }
 
-interface GetChallengeRepoOptions {
-  player1: UserEntity;
-  player2: UserEntity;
+interface GetGameRepoOptions {
+  player1Email?: string;
+  player2Email?: string;
+  gameId?: string;
 }
 
-interface GetChallengeForPlayerRepoOptions {
-  email: string;
-}
-
-export interface Challenge {
+export interface GameEntity {
   _id: ObjectId;
   player1Id: ObjectId;
   player2Id: ObjectId;
   player1Email: string;
   player2Email: string;
   status: string;
+  gameState: string;
+  playerTurn: string;
   create_date: Date;
   update_date: Date;
 }
 
 export interface IGameRepo {
-  createChallenge(options: CreateChallengeRepoOptions): Promise<CreateResult>;
+  createGame(options: CreateGameRepoOptions): Promise<CreateResult>;
 }
 
 export class GameRepo extends BaseMongoRepo implements IGameRepo {
@@ -36,8 +36,8 @@ export class GameRepo extends BaseMongoRepo implements IGameRepo {
     super(db, 'game-data');
   }
 
-  public async createChallenge(options: CreateChallengeRepoOptions): Promise<CreateResult> {
-    const { player1, player2 } = options;
+  public async createGame(options: CreateGameRepoOptions): Promise<CreateResult> {
+    const { player1, player2, gameState } = options;
 
     const response = await super.create({
       player1Id: player1._id,
@@ -45,6 +45,8 @@ export class GameRepo extends BaseMongoRepo implements IGameRepo {
       player1Email: player1.email,
       player2Email: player2.email,
       status: 'STARTED',
+      gameState,
+      playerTurn: player1?._id?.toString(),
       create_date: new Date(),
       update_date: new Date(),
     });
@@ -52,24 +54,21 @@ export class GameRepo extends BaseMongoRepo implements IGameRepo {
     return response;
   }
 
-  public async getChallenge(options: GetChallengeRepoOptions): Promise<Challenge | null> {
-    const { player1, player2 } = options;
+  private _getGameQuery(options: GetGameRepoOptions) {
+    const { player1Email, player2Email, gameId } = options;
 
-    const response = await super.getOne<Challenge>({
-      player1Id: player1._id,
-      player2Id: player2._id,
-    });
-
-    return response;
+    return options
+      ? {
+          ...(player1Email && { player1Email }),
+          ...(player2Email && { player2Email }),
+          ...(gameId && { _id: new ObjectId(gameId) }),
+        }
+      : {};
   }
 
-  public async getChallengeForPlayer(
-    options: GetChallengeForPlayerRepoOptions,
-  ): Promise<Challenge | null> {
-    const { email } = options;
+  public async getGame(options: GetGameRepoOptions): Promise<GameEntity[] | null> {
+    const stages = [{ $match: this._getGameQuery(options) }];
 
-    return super.getOne<Challenge>({
-      $or: [{ player2Email: email }],
-    });
+    return super.executeAggregate(stages);
   }
 }

@@ -1,37 +1,34 @@
-import { useCallback, useContext, useEffect, useRef, useState } from "react"
-import type { ChangeEvent, MouseEvent, KeyboardEvent } from 'react'
-import { useNavigate } from "react-router-dom";
-import { IconButton, InputAdornment, TextField, Typography } from "@mui/material"
-import { KeyboardReturn } from '@mui/icons-material';
 import { useSubscription } from "@apollo/client";
+import { KeyboardReturn } from '@mui/icons-material';
+import { IconButton, InputAdornment, Snackbar, TextField, Typography } from "@mui/material";
+import type { ChangeEvent, KeyboardEvent, MouseEvent } from 'react';
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
-import { usePostChatMessageMutation, useGetChatMessagesQuery, MESSAGE_SUBSCRIPTION, GET_CHAT_MESSAGES, useGetActiveUsers } from "../../api";
-import { ChatMessages, Header, Participants } from "../../components"
-import { usePageTitle } from "../../hooks/usePageTitle";
-import { useUserActivity } from "../../hooks/useUserActivity";
-import { useCheckChallengeData } from "../../hooks/useCheckChallengeData";
+import { GET_CHAT_MESSAGES, MESSAGE_SUBSCRIPTION, useGetActiveUsers, useGetChatMessagesQuery, usePostLobbyChatMessageMutation } from "../../api";
+import { ChatMessages, Header, Participants } from "../../components";
 import { LocalAuthContext } from "../../contexts";
+import { usePageTitle } from "../../hooks/usePageTitle";
 
-import './Lobby.css'
+import './Lobby.css';
 
 
 export const Lobby = () => {
   const { isLoggedIn, user } = useContext(LocalAuthContext)
-  const navigate = useNavigate()
-  const messagesEndRef = useRef<HTMLDivElement>(null)
-  const [chatText, setChatText] = useState("")
   
-  const [postChatMessage, { loading: postChatMsgLoading, error: postChatMsgErr }] = usePostChatMessageMutation()
+  const navigate = useNavigate()
+
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  
+  const [chatText, setChatText] = useState("")
+  const [showToast, setShowToast] = useState(false)
+
+  const [postChatMessage, { loading: postChatMsgLoading, error: postChatMsgErr }] = usePostLobbyChatMessageMutation()
   const [getActiveUsers, { data: activeUsersResp }] = useGetActiveUsers()
+  // const [getGame, { data: gameResp }] = useGetGame()
   const { data: chatMessagesResp } = useGetChatMessagesQuery()
 
-
   usePageTitle('Lobby')
-  useUserActivity(user)
-  
-  const {isChallenged} = useCheckChallengeData(user);
-
-  console.log({isChallenged});
 
   useSubscription(MESSAGE_SUBSCRIPTION, {
     onData: ({ client, data: subData }) => {
@@ -80,21 +77,25 @@ export const Lobby = () => {
   }, [getActiveUsers])
 
 
-  const chatMessages = chatMessagesResp?.messages || []
-  const { displayName, email, _id } = user || {}
+  useEffect(() => {
+    const interval = setInterval(() => {
+      
+    }, 10000)
+    return () => clearInterval(interval)
+  },[])
+
+  const chatMessages = chatMessagesResp?.messages ?? []
 
   const handleChatTextChange = (evt: ChangeEvent<HTMLInputElement>) => setChatText(evt?.target?.value)
 
   const postChat = useCallback(async () => {
     await postChatMessage({
       variables: {
-        username: displayName,
-        userEmail: email,
         message: chatText,
-        userId: _id
+        userId: user?.id
       }
     })
-  }, [_id, chatText, displayName, email, postChatMessage])
+  }, [postChatMessage, chatText, user?.id])
 
   const handleSubmitClicked = async (evt: MouseEvent<HTMLButtonElement>) => {
     await postChat()
@@ -148,6 +149,14 @@ export const Lobby = () => {
           }}
         />
       </div>
+      <Snackbar
+        className="existing-game-toast"
+        open={showToast}
+        onClose={() => setShowToast(false)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right'}}
+        message="There's an existing game in progress."
+        // action={<Button onClick={() => navigate(`/game/${gameData?.getGame?.gameId}`)}>Go to game</Button>}
+      />
     </div>
   )
 }

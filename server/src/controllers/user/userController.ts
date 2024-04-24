@@ -1,6 +1,6 @@
 import { MongoConection } from '../../infrastructure';
-import { IContext } from '../../interface/IContext';
-import { LoginUserResult, UserEntity, UserRepo } from '../../repositories';
+import { IContext, IUserDTO, mapUserDTOToEntity, mapUserEntityToDTO } from '../../interface';
+import { UserRepo } from '../../repositories';
 
 interface RegisterUserParams {
   email: string;
@@ -17,7 +17,9 @@ interface LoginUserParams {
 }
 
 interface GetUserParams {
-  token: string;
+  token?: string;
+  email?: string;
+  id?: string;
 }
 
 interface SetUserStatusParams {
@@ -26,19 +28,37 @@ interface SetUserStatusParams {
 }
 
 interface RegisterUserResponse {
+  user: IUserDTO;
   token: string;
-  user: UserEntity;
+}
+
+interface LoginUserResponse {
+  user: IUserDTO;
+  token: string;
 }
 
 interface IUserController {
   registerUser: (params: RegisterUserParams) => Promise<RegisterUserResponse>;
+  loginUser: (params: LoginUserParams) => Promise<LoginUserResponse>;
   setUserStatus: (params: SetUserStatusParams) => Promise<{ success: boolean }>;
 }
 
 const mongoConection = MongoConection.default.db;
 const userRepo = new UserRepo(mongoConection);
 
+/**
+ * User Controller
+ * @export
+ * @class UserController
+ * @implements {IUserController}
+ */
 export class UserController implements IUserController {
+  /**
+   * Register User
+   * @param {RegisterUserParams} params
+   * @returns {Promise<RegisterUserResponse>}
+   * @memberof UserController
+   */
   public async registerUser(params: RegisterUserParams): Promise<RegisterUserResponse> {
     const { email, password, firstName, lastName, displayName, avatar } = params;
 
@@ -57,22 +77,64 @@ export class UserController implements IUserController {
       throw new Error('Problem getting user data');
     }
 
+    const userDTO = mapUserEntityToDTO(user);
+
     return {
       token: registerResult.token,
-      user,
+      user: userDTO,
     };
   }
 
-  public async loginUser(params: LoginUserParams): Promise<LoginUserResult> {
+  /**
+   * Login User
+   * @param {LoginUserParams} params
+   * @returns {Promise<LoginUserResponse>}
+   */
+  public async loginUser(params: LoginUserParams): Promise<LoginUserResponse> {
     const { email, password } = params;
-    return userRepo.loginUser({ email, password });
+    const loginUserResult = await userRepo.loginUser({ email, password });
+    const { user, token } = loginUserResult;
+
+    const userDTO = mapUserEntityToDTO(user);
+
+    return {
+      user: userDTO,
+      token,
+    };
   }
 
-  public async getUser(params: GetUserParams): Promise<UserEntity | null | undefined> {
-    const { token } = params;
-    return userRepo.getUser({ token });
+  /**
+   * Get User
+   * @param {GetUserParams} params
+   * @returns {Promise<IUserDTO>}
+   * @memberof UserController
+   */
+  public async getUser(params: GetUserParams): Promise<IUserDTO> {
+    const { token, email, id } = params;
+    if (!token && !email && !id) throw new Error('Token, email or id is required');
+
+    const userEntity = mapUserDTOToEntity({ email, id });
+
+    const getUserResponse = await userRepo.getUser({
+      token,
+      email: userEntity.email,
+      _id: userEntity._id,
+    });
+
+    if (!getUserResponse) {
+      throw new Error('User not found');
+    }
+
+    const userDTO = mapUserEntityToDTO(getUserResponse);
+
+    return userDTO;
   }
 
+  /**
+   * Set User Status
+   * @param {SetUserStatusParams} params
+   * @returns {Promise<{ success: boolean }>}
+   */
   public async setUserStatus(params: SetUserStatusParams): Promise<{ success: boolean }> {
     const { email, isActive } = params;
     if (!email) throw new Error('Email is required');
@@ -87,7 +149,7 @@ export class UserController implements IUserController {
     }
   }
 
-  public async getActiveUsers(_: unknown, context: IContext): Promise<UserEntity[]> {
+  public async getActiveUsers(_: unknown, context: IContext): Promise<any[]> {
     const { email } = context;
 
     if (!email) throw new Error('Email is missing');

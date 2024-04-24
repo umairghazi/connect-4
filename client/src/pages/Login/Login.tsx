@@ -28,7 +28,7 @@ export const Login = () => {
     await setUserStatus({
       variables: {
         email,
-        isOnline: true
+        isActive: true
       }
     })
   }, [email, loginUser, password, setUserStatus])

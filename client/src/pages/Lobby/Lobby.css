@@ -37,3 +37,8 @@ html, body {
   z-index: 100;
   background-color: white;
 }
+
+.existing-game-toast .MuiPaper-root {
+  background-color: white;
+  color: black;
+}

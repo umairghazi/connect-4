@@ -3,12 +3,17 @@ import { gql, useSubscription } from "@apollo/client";
 export const MESSAGE_SUBSCRIPTION = gql`
   subscription MESSAGE_SUBSCRIPTION {
     message {
-      _id
+      id
       userId
-      create_date
       message
-      picture
-      username
+      timestamp
+      user {
+        id
+        email
+        displayName
+        isActive
+        avatar
+      }
     }
   }
 `;

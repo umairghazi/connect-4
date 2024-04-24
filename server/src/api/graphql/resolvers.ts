@@ -2,9 +2,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { pubsub } from '../../index';
-import { ChatController, UserController } from '../../controllers';
+import { ChatController, UserController, GameController } from '../../controllers';
 import { IContext } from '../../interface/IContext';
-import { GameController } from '../../controllers/game/gameController';
 
 const chatController = new ChatController();
 const userController = new UserController();
@@ -14,16 +13,20 @@ export const resolvers = {
   Query: {
     getUser: (_: any, args: any) => userController.getUser(args),
     messages: (_: any, args: any) => chatController.getChatMessages(args),
-    getChallenge: (_: any, args: any) => gameController.getChallenge(args),
+    getGame: (_: any, args: any) => gameController.getGame(args),
     getActiveUsers: (_: any, args: any, context: IContext) =>
       userController.getActiveUsers(args, context),
+    checkChallenge: (_: any, args: any) => gameController.checkChallenge(args),
   },
   Mutation: {
+    // Auth
     loginUser: (_: any, args: any) => userController.loginUser(args),
-    postChatMessage: (_: any, args: any) => chatController.postChatMessage(args),
     registerUser: (_: any, args: any) => userController.registerUser(args),
+    // Chat
+    postLobbyChatMessage: (_: any, args: any) => chatController.postChatMessage(args),
+    // Game
+    createGame: (_: any, args: any) => gameController.createGame(args),
     setUserStatus: (_: any, args: any) => userController.setUserStatus(args),
-    createChallenge: (_: any, args: any) => gameController.createChallenge(args),
   },
   Subscription: {
     message: {
@@ -31,7 +34,7 @@ export const resolvers = {
         return pubsub?.asyncIterator(['MESSAGE']);
       },
     },
-    checkChallenge: {
+    checkGame: {
       subscribe: () => {
         return pubsub?.asyncIterator(['CHALLENGE']);
       },

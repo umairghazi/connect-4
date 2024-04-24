@@ -1,13 +1,11 @@
-import { ObjectId } from 'mongodb';
 import { pubsub } from '../../index';
-import { MongoConection } from '../../infrastructure';
-import { ChatRepo } from '../../repositories';
+import { CreateResult, MongoConection } from '../../infrastructure';
+import { IChatDTO, mapChatEntityToDTO } from '../../interface';
+import { ChatRepo, PostChatMessageRepoOptions } from '../../repositories';
 
 interface PostMessageParams {
   userId: string;
   message: string;
-  picture: string;
-  username: string;
 }
 
 export interface GetMessageParams {
@@ -21,13 +19,13 @@ const mongoConection = MongoConection.default.db;
 const chatRepo = new ChatRepo(mongoConection);
 
 interface IChatController {
-  getChatMessages: (params: GetMessageParams) => Promise<any>;
-  postChatMessage: (params: PostMessageParams) => Promise<any>;
+  getChatMessages: (params: GetMessageParams) => Promise<IChatDTO[]>;
+  postChatMessage: (params: PostMessageParams) => Promise<CreateResult>;
 }
 
 export class ChatController implements IChatController {
-  public async getChatMessages(params: GetMessageParams): Promise<any> {
-    const { userId, startTime, endTime } = params || {};
+  public async getChatMessages(params: GetMessageParams): Promise<IChatDTO[]> {
+    const { userId, startTime, endTime } = params ?? {};
 
     const result = await chatRepo.getChatMessages({
       userId,
@@ -35,21 +33,26 @@ export class ChatController implements IChatController {
       endTime,
     });
 
-    return result;
+    const messagesDTO = result.map(mapChatEntityToDTO);
+
+    return messagesDTO;
   }
 
-  public async postChatMessage(params: PostMessageParams): Promise<{ id: ObjectId | null }> {
-    const { userId, message, username } = params || {};
+  public async postChatMessage(params: PostMessageParams): Promise<CreateResult> {
+    const { userId, message } = params ?? {};
 
-    const messageObj = {
+    const messageObj: PostChatMessageRepoOptions = {
       userId,
       message,
-      username,
     };
 
     const result = await chatRepo.postChatMessage(messageObj);
 
-    pubsub?.publish('MESSAGE', { message: messageObj });
+    const messageData = await chatRepo.getChatMessages({ _id: result.id });
+
+    const messageDTO = mapChatEntityToDTO(messageData[0]);
+
+    pubsub?.publish('MESSAGE', { message: messageDTO });
 
     return result;
   }

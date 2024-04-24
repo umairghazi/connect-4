@@ -7,26 +7,37 @@ export function useUserActivity(user?: User) {
   const [setUserStatus] = useSetUserStatusMutation();
 
 
-  useEffect(() => {
-    function activityHandler() {
-      if (!user?.email) return;
+//   useEffect(() => {
+//     function activityHandler() {
+//       if (!user?.email) return;
 
-      setUserStatus({
-        variables: {
-          email: user.email,
-          isActive: true
-        },
-      });
-    }
+//       setUserStatus({
+//         variables: {
+//           email: user.email,
+//           isActive: true
+//         },
+//       });
 
-    const debouncedActivityHandler = debounce(activityHandler, 1000);
+//       const t = setTimeout(() => {
+//         setUserStatus({
+//           variables: {
+//             email: user.email,
+//             isActive: false
+//           },
+//         });
+//       }, 10000);
 
-    document.addEventListener('mousemove', debouncedActivityHandler);
-    document.addEventListener('keydown', debouncedActivityHandler);
+//       return () => clearTimeout(t);
+//     }
 
-    return () => {
-      document.removeEventListener('mousemove', debouncedActivityHandler);
-      document.removeEventListener('keydown', debouncedActivityHandler);
-    };
-  }, [setUserStatus, user?.email]);
+//     const debouncedActivityHandler = debounce(activityHandler, 1000);
+
+//     document.addEventListener('mousemove', debouncedActivityHandler);
+//     document.addEventListener('keydown', debouncedActivityHandler);
+
+//     return () => {
+//       document.removeEventListener('mousemove', debouncedActivityHandler);
+//       document.removeEventListener('keydown', debouncedActivityHandler);
+//     };
+//   }, [setUserStatus, user?.email]);
 }
