@@ -8,7 +8,8 @@ const { REACT_APP_APOLLO_SERVER_URL, REACT_APP_APOLLO_SERVER_WS_URL } = process.
 
 const authLink = setContext(async (_, { headers }) => {
   const cookies = document.cookie.split('=');
-  const c4Token = cookies[0] === 'c4-token' ? cookies[1] : '';
+  const c4Token = cookies[0] === 'c4-new-token' ? cookies[1] : '';
+
   return {
     headers: {
       ...headers,

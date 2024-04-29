@@ -1,8 +1,8 @@
 import { useEffect } from "react";
 import { debounce } from "lodash";
-import { User, useSetUserStatusMutation } from "../api";
+import { IUser, useSetUserStatusMutation } from "../api";
 
-export function useUserActivity(user?: User) {
+export function useUserActivity(user?: IUser) {
 
   const [setUserStatus] = useSetUserStatusMutation();
 

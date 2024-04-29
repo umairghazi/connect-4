@@ -1,27 +1,30 @@
 import { useCallback, useContext } from "react"
-import { User, useCreateGameMutation } from "../../api"
+import { IUser, useCreateGameMutation } from "../../api"
 import { LocalAuthContext } from "../../contexts"
-import { getInitialBoard, serializeBoard } from "../../utils/game.utils"
 
-type Participant = Pick<User, 'email' | 'displayName'>
 interface ParticipantsProps {
-  activeUsers: Participant[]
+  activeUsers: IUser[];
+  handleSetChallengedPlayer: React.Dispatch<React.SetStateAction<IUser | undefined>>;
+  handleSetShowChallengeToast: React.Dispatch<React.SetStateAction<boolean>>;
+  // challengedPlayer: User | undefined;
 }
 
 export const Participants = (props: ParticipantsProps) => {
+  const { activeUsers, handleSetChallengedPlayer, handleSetShowChallengeToast } = props;
   const { user } = useContext(LocalAuthContext)
-  const { email: player1Email } = user || {}
+  const { id } = user || {}
 
   const [createGame] = useCreateGameMutation()
 
-  const handleGame = useCallback(async (user: Participant) => {
-    await createGame({ variables: { player1Email, player2Email: user.email, gameState: serializeBoard(getInitialBoard()) } })
-
-  }, [createGame, player1Email])
+  const handleGame = useCallback(async (user: IUser) => {
+    handleSetShowChallengeToast(true)
+    handleSetChallengedPlayer(user)
+    // await createGame({ variables: { player1Id: id, player2Id: user.id } })
+  }, [handleSetChallengedPlayer])
 
   return (
     <div className="wrapper">
-      {props.activeUsers.map((user, index) => (
+      {activeUsers.map((user, index) => (
         <div key={index} onClick={handleGame.bind(null, user)}>{user.displayName}</div>
       ))}
     </div>

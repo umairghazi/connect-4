@@ -26,7 +26,7 @@ export const GET_ACTIVE_USERS = gql`
   }
 `;
 
-export interface User {
+export interface IUser {
   id: string;
   email: string;
   firstName: string;
@@ -36,13 +36,17 @@ export interface User {
 }
 
 export interface GetUserResult {
-  getUser: User
+  getUser: IUser
 }
 
-export function useGetUser(options?: any) {
+export interface GetActiveUserResult {
+  getActiveUsers: IUser[]
+}
+
+export function useGetUserLazyQuery(options?: any) {
   return useLazyQuery<GetUserResult>(GET_USER, options)
 }
 
-export function useGetActiveUsers(options?: any) {
-  return useLazyQuery(GET_ACTIVE_USERS, options)
+export function useGetActiveUsersLazyQuery(options?: any) {
+  return useLazyQuery<GetActiveUserResult>(GET_ACTIVE_USERS, options)
 }

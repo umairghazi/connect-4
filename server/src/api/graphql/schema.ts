@@ -45,17 +45,34 @@ type UserActivity {
   isActive: Boolean
 }
 
+input CellInput {
+  row: Int
+  col: Int
+  id: String
+  isOccupied: Boolean
+  value: String
+}
+
+type Cell {
+  row: Int
+  col: Int
+  id: String
+  isOccupied: Boolean
+  value: String
+}
+
 type Game {
-  gameId: String
+  id: String
   player1Id: String
   player2Id: String
-  player1Email: String
-  player2Email: String
-  status: String
-  gameState: String
-  playerTurn: String
+  gameStatus: String
+  whoseTurn: String
   createDate: String
   updateDate: String
+  player1Data: UserDTO
+  player2Data: UserDTO
+  boardData: [[Cell]]
+  winnerId: String
 }
 
 
@@ -64,26 +81,26 @@ type Query {
   getUser(token: String, email: String, id: String): UserDTO
   getActiveUsers: [UserDTO]
   messages: [Message]
-  getGame(gameId: String, email: String): Game
-  checkChallenge(email: String): Game
+  # Game
+  getGame(player1Id: String, player2Id: String, id: String): [Game]
 }
 
 type Mutation {
   # Auth
   loginUser(email: String, password: String): LoginUserResult
   registerUser(email: String, password: String, firstName: String, lastName: String, displayName: String, avatar: String): RegisterUserResult
+  setUserStatus(email: String, isActive: Boolean): SetUserStatusResult
   # Chat
   postLobbyChatMessage(userId: String, message: String): PostChatMessageResult
   postGameChatMessage(userId: String, message: String, username: String, picture: String): PostChatMessageResult
   # Game
-  createGame(player1Email: String, player2Email: String, gameState: String): Game
+  createGame(player1Id: String, player2Id: String): Game
+  updateGame(id: String, player1Id: String, player2Id: String, gameStatus: String, whoseTurn: String, boardData: [[CellInput]]): Game
 
-  setUserStatus(email: String, isActive: Boolean): SetUserStatusResult
 }
 
 type Subscription {
   message: Message
-  userActivity: UserActivity
-  checkGame: Game
+  newGame: Game
 }
 `;

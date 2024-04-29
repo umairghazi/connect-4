@@ -1,6 +1,6 @@
 import { createContext, useEffect, useState } from "react";
 
-import { useGetUser } from "../api";
+import { useGetUserLazyQuery } from "../api";
 
 import type { SetState } from "../definitions";
 
@@ -60,13 +60,13 @@ export const setCookie = (name: string, value: string, options: any) => {
 };
 
 export const LocalAuthProvider = ({ children }: any) => {
-  const cookieToken = getCookie('c4-token')
+  const cookieToken = getCookie('c4-new-token')
 
   const [isLoggedIn, setIsLoggedIn] = useState(cookieToken ? true : false)
   const [user, setUser] = useState({})
   const [token, setToken] = useState(cookieToken ?? "")
 
-  const [getUser, { data, error }] = useGetUser()
+  const [getUser, { data, error }] = useGetUserLazyQuery()
 
   useEffect(() => {
     if (cookieToken) {
@@ -90,13 +90,13 @@ export const LocalAuthProvider = ({ children }: any) => {
   }, [data, error])
 
   const updateLoginInfo = (token: string, user: any) => {
-    setCookie('c4-token', token, user)
+    setCookie('c4-new-token', token, user)
     setUser(user)
     setToken(token)
   }
 
   const logout = () => {
-    setCookie('c4-token', "", { days: 0 })
+    setCookie('c4-new-token', "", { days: 0 })
     setUser({})
     setToken("")
     setIsLoggedIn(false)

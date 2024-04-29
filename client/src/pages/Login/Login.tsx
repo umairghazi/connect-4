@@ -47,6 +47,7 @@ export const Login = () => {
       const { token, user } = loginUserData?.loginUser
       if (!token || !user) return
       setIsLoggedIn(true);
+      
       updateLoginInfo(token, user)
     }
   }, [loginUserData, loginUserErr, loginUserLoading, setIsLoggedIn, setUserStatus, updateLoginInfo])

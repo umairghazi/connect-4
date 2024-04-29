@@ -41,6 +41,8 @@ interface IUserController {
   registerUser: (params: RegisterUserParams) => Promise<RegisterUserResponse>;
   loginUser: (params: LoginUserParams) => Promise<LoginUserResponse>;
   setUserStatus: (params: SetUserStatusParams) => Promise<{ success: boolean }>;
+  getUser: (params: GetUserParams) => Promise<IUserDTO>;
+  getActiveUsers: (params: unknown, context: IContext) => Promise<IUserDTO[]>;
 }
 
 const mongoConection = MongoConection.default.db;
@@ -149,15 +151,27 @@ export class UserController implements IUserController {
     }
   }
 
-  public async getActiveUsers(_: unknown, context: IContext): Promise<any[]> {
+  /**
+   * Get Active Users
+   * @param {unknown} _
+   * @param {IContext} context
+   * @returns {Promise<IUserDTO[]>}
+   */
+  public async getActiveUsers(_: unknown, context: IContext): Promise<IUserDTO[]> {
     const { email } = context;
 
     if (!email) throw new Error('Email is missing');
 
+    const emailEntity = mapUserDTOToEntity({ email }).email;
+
     const getActiveUsersRepoParams = {
-      email,
+      email: emailEntity,
     };
 
-    return userRepo.getActiveUsers(getActiveUsersRepoParams);
+    const activeUsers = await userRepo.getActiveUsers(getActiveUsersRepoParams);
+
+    const activeUsersDTO = activeUsers.map((user) => mapUserEntityToDTO(user));
+
+    return activeUsersDTO;
   }
 }

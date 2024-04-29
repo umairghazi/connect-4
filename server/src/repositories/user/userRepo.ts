@@ -31,7 +31,7 @@ export interface SetUserStatusRepoOptions {
 }
 
 export interface GetActiveUsersRepoOptions {
-  email: string;
+  email?: string;
 }
 
 export interface LoginUserResult {

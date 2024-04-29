@@ -1,74 +1,158 @@
 import { Db, ObjectId } from 'mongodb';
-import { BaseMongoRepo, CreateResult } from '../../infrastructure';
-// import { UserEntity } from '../user';
+import { BaseMongoRepo, CreateResult, UpdateResult } from '../../infrastructure';
+import { ICellDto, ICellEntity, IGameEntity, mapGameDTOToEntity } from '../../interface';
+import { isNull, omitBy } from 'lodash';
 
-interface CreateGameRepoOptions {
-  player1: any;
-  player2: any;
-  gameState: string;
+export interface CreateGameRepoOptions {
+  player1Id: string;
+  player2Id: string;
 }
 
-interface GetGameRepoOptions {
-  player1Email?: string;
-  player2Email?: string;
-  gameId?: string;
+export interface GetGameRepoOptions {
+  player1Id?: string;
+  player2Id?: string;
+  id?: string;
 }
 
-export interface GameEntity {
-  _id: ObjectId;
-  player1Id: ObjectId;
-  player2Id: ObjectId;
-  player1Email: string;
-  player2Email: string;
-  status: string;
-  gameState: string;
-  playerTurn: string;
-  create_date: Date;
-  update_date: Date;
+export interface UpdateGameRepoOptions {
+  id: string;
+  player1Id: string;
+  player2Id: string;
+  gameStatus: string;
+  whoseTurn: string;
+  boardData: ICellEntity[][];
+  winnerId?: string;
 }
 
 export interface IGameRepo {
   createGame(options: CreateGameRepoOptions): Promise<CreateResult>;
+  getGame(options: GetGameRepoOptions): Promise<IGameEntity[]>;
+  updateGame(options: UpdateGameRepoOptions): Promise<UpdateResult>;
 }
 
+/**
+ * @export
+ * @class GameRepo
+ * @extends {BaseMongoRepo}
+ * @implements {IGameRepo}
+ */
+
 export class GameRepo extends BaseMongoRepo implements IGameRepo {
+  /**
+   *Creates an instance of GameRepo.
+   * @param {Promise<Db>} db
+   * @memberof GameRepo
+   */
   constructor(db: Promise<Db>) {
     super(db, 'game-data');
   }
 
+  /**
+   * Create game
+   * @param {CreateGameRepoOptions} options
+   * @returns {Promise<CreateResult>}
+   */
   public async createGame(options: CreateGameRepoOptions): Promise<CreateResult> {
-    const { player1, player2, gameState } = options;
+    const { player1Id, player2Id } = options;
 
-    const response = await super.create({
-      player1Id: player1._id,
-      player2Id: player2._id,
-      player1Email: player1.email,
-      player2Email: player2.email,
-      status: 'STARTED',
-      gameState,
-      playerTurn: player1?._id?.toString(),
-      create_date: new Date(),
-      update_date: new Date(),
+    const gameEntity = mapGameDTOToEntity({
+      player1Id,
+      player2Id,
+      whoseTurn: player1Id,
+      gameStatus: 'CHALLENGED',
+      createDate: Date.now().toString(),
+      updateDate: Date.now().toString(),
+      boardData: [],
     });
 
-    return response;
+    return super.create(gameEntity);
   }
 
-  private _getGameQuery(options: GetGameRepoOptions) {
-    const { player1Email, player2Email, gameId } = options;
+  /**
+   * Get game query
+   * @private
+   * @param {GetGameRepoOptions} options
+   * @returns {Record<string, unknown>[]}
+   */
+  private _getGameQuery(options: GetGameRepoOptions): Record<string, unknown>[] {
+    const { player1Id, player2Id, id } = options;
 
-    return options
-      ? {
-          ...(player1Email && { player1Email }),
-          ...(player2Email && { player2Email }),
-          ...(gameId && { _id: new ObjectId(gameId) }),
-        }
-      : {};
+    const pipeline: Record<string, unknown>[] = [];
+
+    if (options) {
+      const playerIds = [];
+      if (player1Id) playerIds.push(new ObjectId(player1Id));
+      if (player2Id) playerIds.push(new ObjectId(player2Id));
+
+      if (playerIds.length > 0) {
+        pipeline.push({
+          $match: {
+            $or: [{ player1Id: { $in: playerIds } }, { player2Id: { $in: playerIds } }],
+          },
+        });
+      }
+
+      if (id) {
+        pipeline.push({ $match: { _id: new ObjectId(id) } });
+      }
+      pipeline.push({
+        $lookup: {
+          from: 'user-data',
+          localField: 'player1Id',
+          foreignField: '_id',
+          as: 'player1Data',
+        },
+      });
+
+      pipeline.push({ $unwind: '$player1Data' });
+
+      pipeline.push({
+        $lookup: {
+          from: 'user-data',
+          localField: 'player2Id',
+          foreignField: '_id',
+          as: 'player2Data',
+        },
+      });
+
+      pipeline.push({ $unwind: '$player2Data' });
+    }
+
+    return pipeline;
   }
 
-  public async getGame(options: GetGameRepoOptions): Promise<GameEntity[] | null> {
-    const stages = [{ $match: this._getGameQuery(options) }];
-
+  /**
+   * Get game
+   * @param {GetGameRepoOptions} options
+   * @returns {Promise<IGameEntity[]>}
+   */
+  public async getGame(options: GetGameRepoOptions): Promise<IGameEntity[]> {
+    const stages = this._getGameQuery(options);
     return super.executeAggregate(stages);
+  }
+
+  /**
+   * Update game
+   * @param {UpdateGameRepoOptions} options
+   * @returns {Promise<UpdateResult>}
+   */
+  public async updateGame(options: UpdateGameRepoOptions): Promise<UpdateResult> {
+    const { id, player1Id, player2Id, gameStatus, whoseTurn, boardData } = options;
+
+    const gameEntity = mapGameDTOToEntity(
+      omitBy(
+        {
+          player1Id,
+          player2Id,
+          gameStatus,
+          whoseTurn,
+          boardData,
+          updateDate: Date.now().toString(),
+        },
+        isNull,
+      ),
+    );
+
+    return super.updateOne({ _id: new ObjectId(id) }, gameEntity);
   }
 }

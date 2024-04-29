@@ -1,113 +1,193 @@
 import { pubsub } from '../..';
-import { MongoConection } from '../../infrastructure';
-import { UserRepo, GameRepo, GameEntity } from '../../repositories';
+import { MongoConection, UpdateResult } from '../../infrastructure';
+import { ICellDto, IGameDTO, mapGameEntityToDTO } from '../../interface';
+import { GameRepo, GetGameRepoOptions, UpdateGameRepoOptions } from '../../repositories';
 
 interface CreateGameParams {
-  player1Email: string;
-  player2Email: string;
-  gameState: string;
+  player1Id: string;
+  player2Id: string;
 }
-interface CreateGameResult {
-  player1Email: string;
-  player2Email: string;
-  gameId: string;
-  status: string;
-}
+
 interface GetGameParams {
-  email: string;
-  gameId: string;
+  id?: string;
+  player1Id?: string;
+  player2Id?: string;
+}
+
+interface UpdateGameParams {
+  id: string;
+  player1Id: string;
+  player2Id: string;
+  gameStatus: string;
+  whoseTurn: string;
+  boardData: ICellDto[][];
+  winnerId?: string;
 }
 
 interface IGameController {
-  createGame: (params: CreateGameParams) => Promise<void>;
-  getGame: (params: GetGameParams) => Promise<GameEntity | null>;
+  createGame: (params: CreateGameParams) => Promise<IGameDTO>;
+  getGame: (params: GetGameParams) => Promise<IGameDTO[]>;
+  updateGame: (params: UpdateGameParams) => Promise<UpdateResult>;
 }
 
 const mongoConection = MongoConection.default.db;
 const gameRepo = new GameRepo(mongoConection);
-const userRepo = new UserRepo(mongoConection);
 
+/**
+ * Game Controller
+ * @export
+ * @class GameController
+ * @implements {IGameController}
+ */
 export class GameController implements IGameController {
-  public async createGame(params: CreateGameParams): Promise<void> {
-    const { player1Email, player2Email, gameState } = params;
+  /**
+   * Create Game
+   * @param {CreateGameParams} params
+   * @returns {Promise<IGameDTO>}
+   */
+  public async createGame(params: CreateGameParams): Promise<IGameDTO> {
+    const { player1Id, player2Id } = params;
 
-    const player1 = await userRepo.getUser({ email: player1Email });
-    const player2 = await userRepo.getUser({ email: player2Email });
+    const existingGame = await gameRepo.getGame({ player1Id, player2Id });
+    const activeGame = existingGame?.filter(
+      (game) => game.gameStatus === 'CHALLENGED' || game.gameStatus === 'IN_PROGRESS',
+    );
 
-    if (!player1 || !player2) {
-      throw new Error('Challenger or challenged player not found.');
-    }
-
-    const existingGame = await gameRepo.getGame({
-      player1Email: player1.email,
-      player2Email: player2.email,
-    });
+    let game: IGameDTO;
 
     if (existingGame?.length) {
-      const game = existingGame[0];
-      pubsub?.publish('CHALLENGE', {
-        checkGame: {
-          gameId: game._id.toString(),
-          player1Id: game.player1Id,
-          player2Id: game.player2Id,
-          player1Email: game.player1Email,
-          player2Email: game.player2Email,
-          status: game.status,
-          gameState: game.gameState,
-          playerTurn: game.player1Id,
-          createDate: game.create_date,
-          updateDate: game.update_date,
-        },
-      });
-      return;
+      game = mapGameEntityToDTO(activeGame[0]);
+    } else {
+      const response = await gameRepo.createGame({ player1Id, player2Id });
+
+      if (!response?.id) {
+        throw new Error('Problem creating game');
+      }
+
+      const gameData = await gameRepo.getGame({ id: response.id.toString() });
+
+      game = mapGameEntityToDTO(gameData[0]);
     }
 
-    const response = await gameRepo.createGame({ player1, player2, gameState });
-
-    if (!response?.id) {
-      throw new Error('Problem creating game');
-    }
-
-    pubsub?.publish('CHALLENGE', {
-      checkGame: {
-        gameId: response.id.toString(),
-        player1Id: player1?._id?.toString(),
-        player2Id: player2?._id?.toString(),
-        player1Email: player1?.email,
-        player2Email: player2?.email,
-        status: 'STARTED',
-        gameState: '',
-        playerTurn: player1?._id?.toString() || '',
-        createDate: Date.now().toString(),
-        updateDate: Date.now().toString(),
-      },
-    });
+    return game;
   }
 
-  public async getGame(params: GetGameParams): Promise<any> {
-    const { gameId, email } = params;
+  /**
+   * Get Game
+   * @param {GetGameParams} params
+   * @returns {Promise<IGameDTO[]>}
+   */
+  public async getGame(params: GetGameParams): Promise<IGameDTO[]> {
+    const { player1Id, player2Id, id } = params;
 
-    const game = await gameRepo.getGame({ gameId, player1Email: email });
-
-    if (!game?.length) return null;
-
-    const gameData = game[0];
-
-    return {
-      _id: gameData?._id,
-      player1Id: gameData?.player1Id,
-      player2Id: gameData?.player2Id,
-      player1Email: gameData?.player1Email,
-      player2Email: gameData?.player2Email,
-      status: gameData?.status,
-      gameState: gameData?.gameState,
-      playerTurn: gameData?.playerTurn,
-      createDate: gameData?.create_date?.toString(),
-      updateDate: gameData?.update_date?.toString(),
+    const getGameParams: GetGameRepoOptions = {
+      player1Id,
+      player2Id,
+      id,
     };
+
+    const gameData = await gameRepo.getGame(getGameParams);
+
+    if (gameData?.length) {
+      const gameDto = gameData.map(mapGameEntityToDTO);
+      return gameDto;
+    }
+
+    return [];
   }
 
-  public async checkChallenge(params: any): Promise<GameEntity | null> {
-    return null;
+  /**
+   * Update Game
+   * @param {UpdateGameParams} params
+   * @returns {Promise<UpdateResult>}
+   */
+  public async updateGame(params: UpdateGameParams): Promise<UpdateResult> {
+    const { id, player1Id, player2Id, gameStatus, whoseTurn, boardData } = params;
+
+    const updateGameParams: UpdateGameRepoOptions = {
+      id,
+      player1Id,
+      player2Id,
+      gameStatus,
+      whoseTurn,
+      boardData,
+    };
+
+    const checkForWin = this._checkWinner(boardData);
+
+    if (checkForWin) {
+      updateGameParams.gameStatus = 'COMPLETED';
+      updateGameParams.winnerId = whoseTurn;
+    }
+
+    const response = await gameRepo.updateGame(updateGameParams);
+    return response;
+  }
+
+  private _checkWinner(boardData: ICellDto[][]) {
+    if (!boardData?.length) {
+      return false;
+    }
+
+    const rows = boardData.length;
+    const cols = boardData[0].length;
+
+    for (let i = 0; i < rows; i++) {
+      for (let j = 0; j <= cols - 3; j++) {
+        console.log('boardData[i][j]', boardData[i][j]);
+        const color = boardData[i][j]?.value;
+        if (
+          color &&
+          color === boardData[i][j + 1].value &&
+          color === boardData[i][j + 2].value &&
+          color === boardData[i][j + 3].value
+        ) {
+          return true;
+        }
+      }
+    }
+
+    for (let i = 0; i < cols; i++) {
+      for (let j = 0; j <= rows - 3; j++) {
+        const color = boardData[j][i]?.value;
+        if (
+          color &&
+          color === boardData[j + 1][i].value &&
+          color === boardData[j + 2][i].value &&
+          color === boardData[j + 3][i].value
+        ) {
+          return true;
+        }
+      }
+    }
+
+    for (let i = 0; i < rows - 3; i++) {
+      for (let j = 0; j < cols - 3; j++) {
+        const color = boardData[i][j]?.value;
+        if (
+          color &&
+          color === boardData[i + 1][j + 1].value &&
+          color === boardData[i + 2][j + 2].value &&
+          color === boardData[i + 3][j + 3].value
+        ) {
+          return true;
+        }
+      }
+    }
+
+    for (let i = 0; i < rows; i++) {
+      for (let j = 0; j < cols - 3; j++) {
+        const color = boardData[i][j]?.value;
+        if (
+          color &&
+          color === boardData[i - 1][j + 1].value &&
+          color === boardData[i - 2][j + 2].value &&
+          color === boardData[i - 3][j + 3].value
+        ) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 }

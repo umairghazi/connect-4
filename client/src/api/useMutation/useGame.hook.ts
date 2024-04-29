@@ -1,12 +1,11 @@
 import { gql, useMutation } from "@apollo/client";
 
 export const CREATE_GAME = gql`
-  mutation createGame($player1Email: String!, $player2Email: String!, $gameState: String) {
-    createGame(player1Email: $player1Email, player2Email: $player2Email, gameState: $gameState) {
-      player1Email
-      player2Email
-      gameId
-      status
+  mutation createGame($player1Id: String!, $player2Id: String!) {
+    createGame(player1Id: $player1Id, player2Id: $player2Id) {
+      player1Id
+      player2Id
+      id
     }
   }
 `;
@@ -15,17 +14,28 @@ export function useCreateGameMutation(options?: any) {
   return useMutation(CREATE_GAME, options)
 }
 
-export const MAKE_MOVE = gql`
-  mutation makeMove($player1Email: String!, $player2Email: String!) {
-    makeMove(player1Email: $player1Email, player2Email: $player2Email) {
-      player1Email
-      player2Email
-      gameId
-      status
+export const UPDATE_GAME = gql`
+  mutation updateGame($id: String!, $whoseTurn: String, $boardData: [[CellInput]], $gameStatus: String) {
+    updateGame(id: $id, whoseTurn: $whoseTurn, boardData: $boardData, gameStatus: $gameStatus) {
+      id
+      player1Id
+      player2Id
+      gameStatus
+      whoseTurn
+      winnerId
+      createDate
+      updateDate
+      boardData {
+        id
+        row
+        col
+        value
+        isOccupied
+      }
     }
   }
 `;
 
-export function useMakeMoveMutation(options?: any) {
-  return useMutation(MAKE_MOVE, options)
+export function useUpdateGameMutation(options?: any) {
+  return useMutation(UPDATE_GAME, options)
 }

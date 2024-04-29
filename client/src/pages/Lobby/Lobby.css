@@ -38,7 +38,7 @@ html, body {
   background-color: white;
 }
 
-.existing-game-toast .MuiPaper-root {
+.game-toast .MuiPaper-root {
   background-color: white;
   color: black;
 }

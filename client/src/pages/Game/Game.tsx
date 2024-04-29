@@ -1,78 +1,135 @@
-import { useSubscription } from "@apollo/client";
 import { Typography } from "@mui/material";
-import { useEffect, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useContext, useEffect, useRef, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 
-import { GET_CHAT_MESSAGES, MESSAGE_SUBSCRIPTION, useGetChatMessagesQuery, useGetGame, usePostLobbyChatMessageMutation } from "../../api";
+import { Cell, useGetGameLazyQuery, useUpdateGameMutation } from "../../api";
 import { ChatMessages, Header } from "../../components";
+import { LocalAuthContext } from "../../contexts";
+import { usePageTitle } from "../../hooks/usePageTitle";
 
 import "./Game.css";
-import { deserializeBoard } from "../../utils/game.utils";
+
+const BOARD_HEIGHT = 8;
+const BOARD_WIDTH = 8;
 
 export const Game = () => {
+  const { isLoggedIn, user } = useContext(LocalAuthContext)
   const messagesEndRef = useRef<HTMLDivElement>(null)
-
   const { id } = useParams();
+  const navigate = useNavigate()
 
-  // const [postChatMessage, { loading: postChatMsgLoading, error: postChatMsgErr }] = usePostChatMessageMutation()
-  // const { data: chatMessagesResp } = useGetChatMessagesQuery()
-  const [getGame, { data: gameData }] = useGetGame();
+  const [boardState, setBoardState] = useState<Cell[][]>([]);
 
-  const board: string[][] = deserializeBoard(gameData?.getGame?.gameState ?? "") ?? [];
-  console.log('board', board);
+  const [getGame, { data: gameDataResp }] = useGetGameLazyQuery();
+  const [updateGame] = useUpdateGameMutation()
+
+  const { id: userId } = user || {};
+  const { player1Id, player2Id, whoseTurn, gameStatus, boardData, player1Data, player2Data, winnerId } = gameDataResp?.getGame[0] || {}
+
+
+  const isPlayersTurn = userId === whoseTurn;
+
+  const colorForPlayer = userId === player1Id ? 'R' : 'B';
+
+  const isGameOver = gameStatus === 'COMPLETED';
   
-  const handleDropPiece = (col: number) => {
-    const newBoard = [...board];
-    for (let i = board.length - 1; i >= 0; i--) {
-      if (!newBoard[i][col]) {
-        newBoard[i][col] = 'R'; // Assume it's player 1's turn, so dropping a red circle
-        break;
-      }
-    }
-    // setBoard(newBoard);
-  };
+  const winner = winnerId === player1Id ? player1Data?.displayName : player2Data?.displayName;
 
-  // const serializedBoard = board.map(row => row.join('-')).join('|');
+  usePageTitle('Game')
 
   useEffect(() => {
-    if (!id) return;
-    getGame({ variables: { gameId: id } });
-  }, [getGame, id])
-
-  console.log('gameData', gameData);
-
-
-  useSubscription(MESSAGE_SUBSCRIPTION, {
-    onData: ({ client, data: subData }) => {
-
-      const cachedMessages = client.readQuery({
-        query: GET_CHAT_MESSAGES
-      });
-
-      const updatedMessages = {
-        ...cachedMessages,
-        messages: [
-          ...cachedMessages.messages,
-          subData.data.message
-        ]
-      }
-
-      client.writeQuery({
-        query: GET_CHAT_MESSAGES,
-        data: updatedMessages,
-      })
+    if (!isLoggedIn) {
+      navigate('/login')
     }
-  });
+  }, [isLoggedIn, navigate])
+
+  useEffect(() => {
+    function initBoard () {
+      const cell: Cell[][] = [];
+
+      for (let i = 0; i < BOARD_HEIGHT; i++) {
+        const row = [];
+        for (let j = 0; j < BOARD_WIDTH; j++) {
+          row.push({
+            row: i,
+            col: j,
+            id: `${i}-${j}`,
+            value: null,
+            isOccupied: false,
+          });
+        }
+        cell.push(row);
+    }
+    return cell;
+  }
+
+    const newBoard = boardData?.map((row) => row.map(({ __typename, ...cell }) => cell));
+    setBoardState(newBoard?.length ? newBoard : initBoard());
+    // setBoardState(initBoard());
+  }, [boardData])
+
+  console.log('boardState', boardState);
+  
+ 
+  useEffect(() => {
+    if (!id) return;
+
+    getGame({
+      variables: { id },
+      onCompleted: (data) => {
+        if (!data.getGame.length) {
+          navigate('/lobby');
+        }
+      }
+    });
+  }, [getGame, id, navigate])
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      getGame({ variables: { id } });
+    } , 2000);
+    return () => clearInterval(interval);
+  }, [getGame, id, updateGame])
+
+
+  const handleDropPiece = (cell: Cell) => {
+    if (!isPlayersTurn) return;
+    const { col } = cell;
+
+    let currentRow = BOARD_HEIGHT - 1;
+
+    while(currentRow >= 0 && boardState[currentRow][col].isOccupied) {
+      currentRow--;
+    }
+
+    if (currentRow < 0) return;
+
+    const newBoardState = boardState.map((row) => row.map((cell) => ({ ...cell })));
+    
+    newBoardState[currentRow][col].value = colorForPlayer;
+    newBoardState[currentRow][col].isOccupied = true;
+    
+    setBoardState(newBoardState);
+
+    updateGame({
+      variables: {
+        id,
+        whoseTurn: userId === player1Id ? player2Id : player1Id,
+        boardData: newBoardState,
+      }
+    })
+    
+  };
 
   const renderBoard = () => {
     return (
       <div className="board">
-        {board.map((row, rowIndex) => (
+        {boardState.map((row, rowIndex) => (
           <div key={rowIndex} className="row">
             {row.map((cell, colIndex) => (
-              <div key={colIndex} className="cell" onClick={() => handleDropPiece(colIndex)}>
-                {cell === 'R' && <div className="red-piece" />}
-                {cell === 'B' && <div className="blue-piece" />}
+              <div key={colIndex} className={`cell ${isPlayersTurn ? "pointer" : ""}`} onClick={() => handleDropPiece(cell)}>
+                {cell.value === 'R' && <div className="red-piece" />}
+                {cell.value === 'B' && <div className="blue-piece" />}
               </div>
             ))}
           </div>
@@ -80,7 +137,7 @@ export const Game = () => {
       </div>
     );
   };
-
+  
   return (
     <div className="wrapper">
       <div className="header">
@@ -88,7 +145,9 @@ export const Game = () => {
       </div>
       <div className="content">
         <div className="chat" ref={messagesEndRef}>
-          <Typography variant="h4" gutterBottom>Game</Typography>
+          <Typography variant="h4" gutterBottom>
+            Game - {whoseTurn === player1Id ? player1Data?.displayName : player2Data?.displayName}'s Turn
+          </Typography>
           <ChatMessages messages={[]} />
           <div className="game">
             {renderBoard()}

@@ -11,22 +11,25 @@ const gameController = new GameController();
 
 export const resolvers = {
   Query: {
+    // Auth
     getUser: (_: any, args: any) => userController.getUser(args),
-    messages: (_: any, args: any) => chatController.getChatMessages(args),
-    getGame: (_: any, args: any) => gameController.getGame(args),
     getActiveUsers: (_: any, args: any, context: IContext) =>
       userController.getActiveUsers(args, context),
-    checkChallenge: (_: any, args: any) => gameController.checkChallenge(args),
+    // Chat
+    messages: (_: any, args: any) => chatController.getChatMessages(args),
+    // Game
+    getGame: (_: any, args: any) => gameController.getGame(args),
   },
   Mutation: {
     // Auth
     loginUser: (_: any, args: any) => userController.loginUser(args),
     registerUser: (_: any, args: any) => userController.registerUser(args),
+    setUserStatus: (_: any, args: any) => userController.setUserStatus(args),
     // Chat
     postLobbyChatMessage: (_: any, args: any) => chatController.postChatMessage(args),
     // Game
     createGame: (_: any, args: any) => gameController.createGame(args),
-    setUserStatus: (_: any, args: any) => userController.setUserStatus(args),
+    updateGame: (_: any, args: any) => gameController.updateGame(args),
   },
   Subscription: {
     message: {
@@ -34,15 +37,10 @@ export const resolvers = {
         return pubsub?.asyncIterator(['MESSAGE']);
       },
     },
-    checkGame: {
+    newGame: {
       subscribe: () => {
-        return pubsub?.asyncIterator(['CHALLENGE']);
+        return pubsub?.asyncIterator(['NEW_GAME']);
       },
     },
-    // userActivity: {
-    //   subscribe: () => {
-    //     return pubsub?.asyncIterator(['USER_ACTIVITY']);
-    //   },
-    // },
   },
 };

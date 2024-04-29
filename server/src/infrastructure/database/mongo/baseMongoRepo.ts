@@ -12,6 +12,10 @@ export interface CreateResult {
   id: ObjectId | null;
 }
 
+export interface UpdateResult {
+  count: number;
+}
+
 interface IBaseMongoRepo {
   getById<T>(id: string): Promise<T | null>;
   getByIds<T>(id: Array<string>): Promise<T[]>;
@@ -23,9 +27,9 @@ interface IBaseMongoRepo {
   executeAggregateStream<T>(query: Array<any>): Promise<AggregationCursor<T>>;
   create(doc: object): Promise<CreateResult>;
   updateById<T>(id: string, update: object): Promise<T | null>;
-  updateOne(query: object, update: object): Promise<{ count: number }>;
-  updateMany<T>(query: object, update: T, operator?: UpdateOperator): Promise<{ count: number }>;
-  deleteMany(query: object): Promise<{ count: number }>;
+  updateOne(query: object, update: object): Promise<UpdateResult>;
+  updateMany<T>(query: object, update: T, operator?: UpdateOperator): Promise<UpdateResult>;
+  deleteMany(query: object): Promise<UpdateResult>;
 }
 
 export class BaseMongoRepo implements IBaseMongoRepo {
@@ -144,7 +148,7 @@ export class BaseMongoRepo implements IBaseMongoRepo {
     return this.getById<T>(id);
   }
 
-  async updateOne(query: object, update: object): Promise<{ count: number }> {
+  async updateOne(query: object, update: object): Promise<UpdateResult> {
     const collection = await this._collection;
 
     if (!query || !update) {
@@ -158,11 +162,7 @@ export class BaseMongoRepo implements IBaseMongoRepo {
     return { count: (opResult && opResult.modifiedCount) || 0 };
   }
 
-  async updateMany<T>(
-    query: object,
-    update: T,
-    operator?: UpdateOperator,
-  ): Promise<{ count: number }> {
+  async updateMany<T>(query: object, update: T, operator?: UpdateOperator): Promise<UpdateResult> {
     const collection = await this._collection;
 
     if (!query || (!update && !operator)) {
@@ -177,7 +177,7 @@ export class BaseMongoRepo implements IBaseMongoRepo {
     return { count: (opResult && opResult.modifiedCount) || 0 };
   }
 
-  async deleteMany<TQuery>(query: TQuery): Promise<{ count: number }> {
+  async deleteMany<TQuery>(query: TQuery): Promise<UpdateResult> {
     const collection = await this._collection;
 
     if (!query) {
