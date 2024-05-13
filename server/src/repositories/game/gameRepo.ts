@@ -1,6 +1,6 @@
 import { Db, ObjectId } from 'mongodb';
 import { BaseMongoRepo, CreateResult, UpdateResult } from '../../infrastructure';
-import { ICellDto, ICellEntity, IGameEntity, mapGameDTOToEntity } from '../../interface';
+import { IGameEntity, mapGameDTOToEntity } from '../../interface';
 import { isNull, omitBy } from 'lodash';
 
 export interface CreateGameRepoOptions {
@@ -12,6 +12,7 @@ export interface GetGameRepoOptions {
   player1Id?: string;
   player2Id?: string;
   id?: string;
+  gameStatus?: string[];
 }
 
 export interface UpdateGameRepoOptions {
@@ -20,7 +21,7 @@ export interface UpdateGameRepoOptions {
   player2Id: string;
   gameStatus: string;
   whoseTurn: string;
-  boardData: ICellEntity[][];
+  boardData: string;
   winnerId?: string;
 }
 
@@ -62,7 +63,7 @@ export class GameRepo extends BaseMongoRepo implements IGameRepo {
       gameStatus: 'CHALLENGED',
       createDate: Date.now().toString(),
       updateDate: Date.now().toString(),
-      boardData: [],
+      boardData: '',
     });
 
     return super.create(gameEntity);
@@ -75,7 +76,7 @@ export class GameRepo extends BaseMongoRepo implements IGameRepo {
    * @returns {Record<string, unknown>[]}
    */
   private _getGameQuery(options: GetGameRepoOptions): Record<string, unknown>[] {
-    const { player1Id, player2Id, id } = options;
+    const { player1Id, player2Id, id, gameStatus } = options;
 
     const pipeline: Record<string, unknown>[] = [];
 
@@ -84,17 +85,24 @@ export class GameRepo extends BaseMongoRepo implements IGameRepo {
       if (player1Id) playerIds.push(new ObjectId(player1Id));
       if (player2Id) playerIds.push(new ObjectId(player2Id));
 
+      const matchStage: Record<string, unknown> = {};
+
       if (playerIds.length > 0) {
-        pipeline.push({
-          $match: {
-            $or: [{ player1Id: { $in: playerIds } }, { player2Id: { $in: playerIds } }],
-          },
-        });
+        matchStage.$or = [{ player1Id: { $in: playerIds } }, { player2Id: { $in: playerIds } }];
       }
 
       if (id) {
-        pipeline.push({ $match: { _id: new ObjectId(id) } });
+        matchStage._id = new ObjectId(id);
       }
+
+      if (Object.keys(matchStage).length > 0) {
+        pipeline.push({ $match: matchStage });
+      }
+
+      if (gameStatus?.length) {
+        pipeline.push({ $match: { gameStatus: { $in: gameStatus } } });
+      }
+
       pipeline.push({
         $lookup: {
           from: 'user-data',
@@ -137,7 +145,7 @@ export class GameRepo extends BaseMongoRepo implements IGameRepo {
    * @returns {Promise<UpdateResult>}
    */
   public async updateGame(options: UpdateGameRepoOptions): Promise<UpdateResult> {
-    const { id, player1Id, player2Id, gameStatus, whoseTurn, boardData } = options;
+    const { id, player1Id, player2Id, gameStatus, whoseTurn, boardData, winnerId } = options;
 
     const gameEntity = mapGameDTOToEntity(
       omitBy(
@@ -147,6 +155,7 @@ export class GameRepo extends BaseMongoRepo implements IGameRepo {
           gameStatus,
           whoseTurn,
           boardData,
+          winnerId,
           updateDate: Date.now().toString(),
         },
         isNull,

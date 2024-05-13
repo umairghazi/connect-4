@@ -24,15 +24,15 @@ export const Game = () => {
   const [updateGame] = useUpdateGameMutation()
 
   const { id: userId } = user || {};
-  const { player1Id, player2Id, whoseTurn, gameStatus, boardData, player1Data, player2Data, winnerId } = gameDataResp?.getGame[0] || {}
 
+  const { player1Id, player2Id, whoseTurn, gameStatus, boardData, player1Data, player2Data, winnerId } = gameDataResp?.getGame[0] || {};
 
   const isPlayersTurn = userId === whoseTurn;
 
   const colorForPlayer = userId === player1Id ? 'R' : 'B';
 
   const isGameOver = gameStatus === 'COMPLETED';
-  
+
   const winner = winnerId === player1Id ? player1Data?.displayName : player2Data?.displayName;
 
   usePageTitle('Game')
@@ -44,7 +44,7 @@ export const Game = () => {
   }, [isLoggedIn, navigate])
 
   useEffect(() => {
-    function initBoard () {
+    function initBoard() {
       const cell: Cell[][] = [];
 
       for (let i = 0; i < BOARD_HEIGHT; i++) {
@@ -59,18 +59,15 @@ export const Game = () => {
           });
         }
         cell.push(row);
+      }
+      return cell;
     }
-    return cell;
-  }
 
-    const newBoard = boardData?.map((row) => row.map(({ __typename, ...cell }) => cell));
+    const newBoard = deserializeGameState(boardData);
     setBoardState(newBoard?.length ? newBoard : initBoard());
-    // setBoardState(initBoard());
   }, [boardData])
 
-  console.log('boardState', boardState);
-  
- 
+
   useEffect(() => {
     if (!id) return;
 
@@ -87,10 +84,25 @@ export const Game = () => {
   useEffect(() => {
     const interval = setInterval(() => {
       getGame({ variables: { id } });
-    } , 2000);
+    }, 500);
     return () => clearInterval(interval);
-  }, [getGame, id, updateGame])
+  }, [getGame, id])
 
+
+  const serializeGameState = (boardState: Cell[][]) => {
+    return boardState.map((row) => row.map(({ value }) => value).join('-')).join('|');
+  }
+
+  const deserializeGameState = (boardData?: string) => {
+    if (!boardData) return;
+    return boardData.split('|').map((row, rowIndex) => row.split('-').map((value, colIndex) => ({
+      row: rowIndex,
+      col: colIndex,
+      id: `${rowIndex}-${colIndex}`,
+      value,
+      isOccupied: !!value,
+    })));
+  }
 
   const handleDropPiece = (cell: Cell) => {
     if (!isPlayersTurn) return;
@@ -98,27 +110,27 @@ export const Game = () => {
 
     let currentRow = BOARD_HEIGHT - 1;
 
-    while(currentRow >= 0 && boardState[currentRow][col].isOccupied) {
+    while (currentRow >= 0 && boardState[currentRow][col].isOccupied) {
       currentRow--;
     }
 
     if (currentRow < 0) return;
 
     const newBoardState = boardState.map((row) => row.map((cell) => ({ ...cell })));
-    
+
     newBoardState[currentRow][col].value = colorForPlayer;
     newBoardState[currentRow][col].isOccupied = true;
-    
+
     setBoardState(newBoardState);
 
     updateGame({
       variables: {
         id,
         whoseTurn: userId === player1Id ? player2Id : player1Id,
-        boardData: newBoardState,
+        boardData: serializeGameState(newBoardState),
       }
     })
-    
+
   };
 
   const renderBoard = () => {
@@ -127,7 +139,7 @@ export const Game = () => {
         {boardState.map((row, rowIndex) => (
           <div key={rowIndex} className="row">
             {row.map((cell, colIndex) => (
-              <div key={colIndex} className={`cell ${isPlayersTurn ? "pointer" : ""}`} onClick={() => handleDropPiece(cell)}>
+              <div key={colIndex} className={`cell ${isPlayersTurn ? "pointer" : ""}`} onClick={() => !isGameOver && handleDropPiece(cell)}>
                 {cell.value === 'R' && <div className="red-piece" />}
                 {cell.value === 'B' && <div className="blue-piece" />}
               </div>
@@ -137,7 +149,7 @@ export const Game = () => {
       </div>
     );
   };
-  
+
   return (
     <div className="wrapper">
       <div className="header">
@@ -151,6 +163,17 @@ export const Game = () => {
           <ChatMessages messages={[]} />
           <div className="game">
             {renderBoard()}
+            {isGameOver && (
+              <div className="game-over">
+                <Typography variant="h4" gutterBottom>
+                  Game Over
+                </Typography>
+                <Typography variant="h5" gutterBottom>
+                  Winner: {winner}
+                </Typography>
+              </div>
+            )
+            }
           </div>
         </div>
       </div>

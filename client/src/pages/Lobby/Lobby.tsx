@@ -7,15 +7,15 @@ import { useNavigate } from "react-router-dom";
 import {
   GET_CHAT_MESSAGES,
   GET_GAME,
+  IUser,
   MESSAGE_SUBSCRIPTION,
   NEW_GAME_SUB,
-  IUser,
   useCreateGameMutation,
   useGetActiveUsersLazyQuery,
   useGetChatMessagesQuery,
+  useGetGameLazyQuery,
   usePostLobbyChatMessageMutation,
-  useUpdateGameMutation,
-  useGetGameLazyQuery
+  useUpdateGameMutation
 } from "../../api";
 import { ChatMessages, Header, Participants } from "../../components";
 import { LocalAuthContext } from "../../contexts";
@@ -45,14 +45,11 @@ export const Lobby = () => {
   const { data: chatMessagesResp } = useGetChatMessagesQuery()
   const [getGame, { data: gameDataResp }] = useGetGameLazyQuery()
 
-  const isExistingGame = !!gameDataResp?.getGame.length && (gameDataResp?.getGame?.[0]?.gameStatus === 'IN_PROGRESS');
-
-  const amIChallenged = !!gameDataResp?.getGame.length && gameDataResp?.getGame?.[0]?.gameStatus === 'CHALLENGED' && gameDataResp?.getGame?.[0]?.player2Id === user?.id;
-  const existingGame = isExistingGame ? gameDataResp?.getGame[0] : null;
-  console.log('existingGame', existingGame);
-  console.log('gameDataResp', gameDataResp);
+  const game = gameDataResp?.getGame?.filter((g) => (g.gameStatus === 'CHALLENGED' || g.gameStatus === 'IN_PROGRESS') && (g.player1Id === user?.id || g.player2Id === user?.id))[0];
   
-
+  const isExistingGame = !!game && (game.gameStatus === 'IN_PROGRESS');
+  const amIChallenged = !!game && game?.gameStatus === 'CHALLENGED' && game?.player2Id === user?.id;
+  const existingGame = isExistingGame ? game : null;
   const chatMessages = chatMessagesResp?.messages ?? []
 
   usePageTitle('Lobby')
@@ -133,7 +130,7 @@ export const Lobby = () => {
   useEffect(() => {
     const interval = setInterval(() => {
       getGame({ variables: { player1Id: user?.id } })
-    }, 2000)
+    }, 5000)
     return () => clearInterval(interval)
   }, [getGame, user?.id])
 
@@ -142,6 +139,12 @@ export const Lobby = () => {
       setShowGotChallengedToast(true)
     }
   }, [amIChallenged])
+
+  useEffect(() => {
+    if(showWaitingToast && gameDataResp?.getGame?.[0]?.gameStatus === 'IN_PROGRESS') {
+      navigate(`/game/${gameDataResp?.getGame?.[0]?.id}`)
+    }
+  }, [gameDataResp, navigate, showWaitingToast])
 
 
   const handleChatTextChange = (evt: ChangeEvent<HTMLInputElement>) => setChatText(evt?.target?.value)
@@ -183,8 +186,10 @@ export const Lobby = () => {
   }
 
   const handleAcceptGame = async () => {
-    await updateGame({ variables: { id: gameDataResp?.getGame?.[0]?.id, gameStatus: 'ACCEPTED' } })
-    await getGame({ variables: { id: gameDataResp?.getGame?.[0]?.id } });
+    await updateGame({
+      variables: { id: gameDataResp?.getGame?.[0]?.id, gameStatus: 'IN_PROGRESS' },
+      onCompleted: () => navigate(`/game/${gameDataResp?.getGame?.[0]?.id}`)
+    })
   }
 
   if (!isLoggedIn) {
@@ -275,7 +280,7 @@ export const Lobby = () => {
         open={showWaitingToast}
         onClose={() => setShowWaitingToast(false)}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-        message={`Waiting for ${gameDataResp?.getGame?.[0]?.player2Data?.displayName ?? "opponent"} to accept the game`}
+        message={`Waiting for ${game?.player2Data?.displayName ?? "opponent"} to accept the game`}
         action={
           <>
             <CircularProgress />

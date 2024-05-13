@@ -15,7 +15,7 @@ export function useCreateGameMutation(options?: any) {
 }
 
 export const UPDATE_GAME = gql`
-  mutation updateGame($id: String!, $whoseTurn: String, $boardData: [[CellInput]], $gameStatus: String) {
+  mutation updateGame($id: String!, $whoseTurn: String, $boardData: String, $gameStatus: String) {
     updateGame(id: $id, whoseTurn: $whoseTurn, boardData: $boardData, gameStatus: $gameStatus) {
       id
       player1Id
@@ -25,13 +25,7 @@ export const UPDATE_GAME = gql`
       winnerId
       createDate
       updateDate
-      boardData {
-        id
-        row
-        col
-        value
-        isOccupied
-      }
+      boardData
     }
   }
 `;

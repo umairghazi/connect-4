@@ -12,13 +12,7 @@ export const GET_GAME = gql`
       createDate
       updateDate
       winnerId
-      boardData {
-        id
-        row
-        col
-        value
-        isOccupied
-      }
+      boardData
       player1Data {
         id
         displayName
@@ -48,7 +42,7 @@ export interface IGame {
   whoseTurn: string
   createDate: string
   updateDate: string
-  boardData: Cell[][]
+  boardData: string
   player1Data: Partial<IUser>
   player2Data: Partial<IUser>
   winnerId: string

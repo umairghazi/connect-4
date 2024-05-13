@@ -1,13 +1,5 @@
 import { IUserDTO } from './UserDTO';
 
-export interface ICellDto {
-  row: number;
-  col: number;
-  id: string;
-  isOccupied: boolean;
-  value: string;
-}
-
 export interface IGameDTO {
   id?: string;
   player1Id?: string;
@@ -16,7 +8,7 @@ export interface IGameDTO {
   gameStatus?: string;
   createDate?: string;
   updateDate?: string;
-  boardData?: ICellDto[][];
+  boardData?: string;
   player1Data?: Partial<IUserDTO>;
   player2Data?: Partial<IUserDTO>;
 }

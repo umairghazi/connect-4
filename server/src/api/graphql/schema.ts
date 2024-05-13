@@ -45,22 +45,6 @@ type UserActivity {
   isActive: Boolean
 }
 
-input CellInput {
-  row: Int
-  col: Int
-  id: String
-  isOccupied: Boolean
-  value: String
-}
-
-type Cell {
-  row: Int
-  col: Int
-  id: String
-  isOccupied: Boolean
-  value: String
-}
-
 type Game {
   id: String
   player1Id: String
@@ -71,7 +55,7 @@ type Game {
   updateDate: String
   player1Data: UserDTO
   player2Data: UserDTO
-  boardData: [[Cell]]
+  boardData: String
   winnerId: String
 }
 
@@ -95,7 +79,7 @@ type Mutation {
   postGameChatMessage(userId: String, message: String, username: String, picture: String): PostChatMessageResult
   # Game
   createGame(player1Id: String, player2Id: String): Game
-  updateGame(id: String, player1Id: String, player2Id: String, gameStatus: String, whoseTurn: String, boardData: [[CellInput]]): Game
+  updateGame(id: String, player1Id: String, player2Id: String, gameStatus: String, whoseTurn: String, boardData: String): Game
 
 }
 

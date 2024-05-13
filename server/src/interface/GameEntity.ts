@@ -1,14 +1,6 @@
 import { ObjectId } from 'mongodb';
 import { IUserEntity } from './UserEntity';
 
-export interface ICellEntity {
-  row: number;
-  col: number;
-  id: string;
-  isOccupied: boolean;
-  value: string;
-}
-
 export interface IGameEntity {
   _id?: ObjectId;
   player1Id?: ObjectId;
@@ -17,7 +9,7 @@ export interface IGameEntity {
   gameStatus?: string;
   create_date?: string;
   update_date?: string;
-  boardData?: ICellEntity[][];
+  boardData?: string;
   player1Data?: Partial<IUserEntity>;
   player2Data?: Partial<IUserEntity>;
 }

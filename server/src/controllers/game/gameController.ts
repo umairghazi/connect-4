@@ -1,6 +1,6 @@
 import { pubsub } from '../..';
 import { MongoConection, UpdateResult } from '../../infrastructure';
-import { ICellDto, IGameDTO, mapGameEntityToDTO } from '../../interface';
+import { IGameDTO, mapGameEntityToDTO } from '../../interface';
 import { GameRepo, GetGameRepoOptions, UpdateGameRepoOptions } from '../../repositories';
 
 interface CreateGameParams {
@@ -20,7 +20,7 @@ interface UpdateGameParams {
   player2Id: string;
   gameStatus: string;
   whoseTurn: string;
-  boardData: ICellDto[][];
+  boardData: string;
   winnerId?: string;
 }
 
@@ -48,15 +48,16 @@ export class GameController implements IGameController {
   public async createGame(params: CreateGameParams): Promise<IGameDTO> {
     const { player1Id, player2Id } = params;
 
-    const existingGame = await gameRepo.getGame({ player1Id, player2Id });
-    const activeGame = existingGame?.filter(
-      (game) => game.gameStatus === 'CHALLENGED' || game.gameStatus === 'IN_PROGRESS',
-    );
+    const existingGame = await gameRepo.getGame({
+      player1Id,
+      player2Id,
+      gameStatus: ['CHALLENGED', 'IN_PROGRESS'],
+    });
 
     let game: IGameDTO;
 
     if (existingGame?.length) {
-      game = mapGameEntityToDTO(activeGame[0]);
+      game = mapGameEntityToDTO(existingGame[0]);
     } else {
       const response = await gameRepo.createGame({ player1Id, player2Id });
 
@@ -113,6 +114,8 @@ export class GameController implements IGameController {
       boardData,
     };
 
+    console.log('updateGameParams', updateGameParams);
+
     const checkForWin = this._checkWinner(boardData);
 
     if (checkForWin) {
@@ -124,65 +127,82 @@ export class GameController implements IGameController {
     return response;
   }
 
-  private _checkWinner(boardData: ICellDto[][]) {
+  private _deserializeBoardData(boardData: string) {
+    if (!boardData) return;
+    return boardData.split('|').map((row, rowIndex) =>
+      row.split('-').map((value, colIndex) => ({
+        row: rowIndex,
+        col: colIndex,
+        id: `${rowIndex}-${colIndex}`,
+        value,
+        isOccupied: !!value,
+      })),
+    );
+  }
+
+  private _checkWinner(boardData: string) {
     if (!boardData?.length) {
       return false;
     }
 
-    const rows = boardData.length;
-    const cols = boardData[0].length;
+    const deserializedBoard = this._deserializeBoardData(boardData);
+
+    const rows = deserializedBoard?.length ?? 0;
+    const cols = deserializedBoard?.[0]?.length ?? 0;
 
     for (let i = 0; i < rows; i++) {
+      for (let j = 0; j < cols; j++) {
+        // Change condition to j < cols
+        const color = deserializedBoard?.[i]?.[j]?.value;
+        if (
+          color &&
+          color === deserializedBoard[i]?.[j + 1]?.value &&
+          color === deserializedBoard[i]?.[j + 2]?.value &&
+          color === deserializedBoard[i]?.[j + 3]?.value
+        ) {
+          return true;
+        }
+      }
+    }
+
+    for (let i = 0; i < rows; i++) {
+      for (let j = 0; j <= cols - 3; j++) {
+        // Adjust loop condition to j <= cols - 3
+        const color = deserializedBoard?.[j]?.[i]?.value;
+        if (
+          color &&
+          color === deserializedBoard[j + 1]?.[i]?.value &&
+          color === deserializedBoard[j + 2]?.[i]?.value &&
+          color === deserializedBoard[j + 3]?.[i]?.value
+        ) {
+          return true;
+        }
+      }
+    }
+
+    for (let i = 0; i <= rows - 3; i++) {
+      // Adjust loop condition to i <= rows - 3
       for (let j = 0; j <= cols - 3; j++) {
-        console.log('boardData[i][j]', boardData[i][j]);
-        const color = boardData[i][j]?.value;
+        const color = deserializedBoard?.[i]?.[j]?.value;
         if (
           color &&
-          color === boardData[i][j + 1].value &&
-          color === boardData[i][j + 2].value &&
-          color === boardData[i][j + 3].value
+          color === deserializedBoard[i + 1]?.[j + 1]?.value &&
+          color === deserializedBoard[i + 2]?.[j + 2]?.value &&
+          color === deserializedBoard[i + 3]?.[j + 3]?.value
         ) {
           return true;
         }
       }
     }
 
-    for (let i = 0; i < cols; i++) {
-      for (let j = 0; j <= rows - 3; j++) {
-        const color = boardData[j][i]?.value;
+    for (let i = 3; i < rows; i++) {
+      for (let j = 0; j <= cols - 3; j++) {
+        const color = deserializedBoard?.[i]?.[j]?.value;
         if (
           color &&
-          color === boardData[j + 1][i].value &&
-          color === boardData[j + 2][i].value &&
-          color === boardData[j + 3][i].value
-        ) {
-          return true;
-        }
-      }
-    }
-
-    for (let i = 0; i < rows - 3; i++) {
-      for (let j = 0; j < cols - 3; j++) {
-        const color = boardData[i][j]?.value;
-        if (
-          color &&
-          color === boardData[i + 1][j + 1].value &&
-          color === boardData[i + 2][j + 2].value &&
-          color === boardData[i + 3][j + 3].value
-        ) {
-          return true;
-        }
-      }
-    }
-
-    for (let i = 0; i < rows; i++) {
-      for (let j = 0; j < cols - 3; j++) {
-        const color = boardData[i][j]?.value;
-        if (
-          color &&
-          color === boardData[i - 1][j + 1].value &&
-          color === boardData[i - 2][j + 2].value &&
-          color === boardData[i - 3][j + 3].value
+          color === deserializedBoard[i - 1]?.[j + 1]?.value &&
+          color === deserializedBoard[i - 2]?.[j + 2]?.value &&
+          color === deserializedBoard[i - 3]?.[j + 3]?.value
         ) {
           return true;
         }
