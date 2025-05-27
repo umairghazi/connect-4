@@ -1,0 +1,48 @@
+syntax = "proto3";
+package game;
+
+import "user.proto";
+
+service GameService {
+  rpc GetGame (GameQueryRequest) returns (GameListResponse);
+  rpc CreateGame (CreateGameRequest) returns (Game);
+  rpc UpdateGame (UpdateGameRequest) returns (Game);
+}
+
+message GameQueryRequest {
+  string player1Id = 1;
+  string player2Id = 2;
+  string id = 3;
+}
+
+message CreateGameRequest {
+  string player1Id = 1;
+  string player2Id = 2;
+}
+
+message UpdateGameRequest {
+  string id = 1;
+  string player1Id = 2;
+  string player2Id = 3;
+  string gameStatus = 4;
+  string whoseTurn = 5;
+  string boardData = 6;
+}
+
+message Game {
+  string id = 1;
+  string player1Id = 2;
+  string player2Id = 3;
+  string gameStatus = 4;
+  string whoseTurn = 5;
+  string createDate = 6;
+  string updateDate = 7;
+  user.UserDTO player1Data = 8;
+  user.UserDTO player2Data = 9;
+  string boardData = 10;
+  string winnerId = 11;
+}
+
+message GameListResponse {
+  repeated Game games = 1;
+}
