@@ -1,5 +1,5 @@
-import { createContext, useContext, useEffect, useState } from "react";
-import { LocalAuthContext } from "./LocalAuth.context";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { LocalAuthContext } from "./AuthContext";
 import { useSetUserStatusMutation } from "../api";
 import { debounce } from "lodash";
 
@@ -70,10 +70,14 @@ export const UserActivityProvider = ({ children }: any) => {
   }, [setUserStatus, user.email]);
 
   console.log('userIsActive', userIsActive);
-  
+
+  const contextValue = useMemo(
+    () => ({ userIsActive, setUserIsActive }),
+    [userIsActive, setUserIsActive]
+  );
 
   return (
-    <UserActivityContext.Provider value={{ userIsActive, setUserIsActive }}>
+    <UserActivityContext.Provider value={contextValue}>
       {children}
     </UserActivityContext.Provider>
   )

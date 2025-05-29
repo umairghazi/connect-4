@@ -1,20 +1,14 @@
-import { ApolloProvider } from "@apollo/client";
-
-import { AppWrapper } from './components';
-import { ColorModeProvider, LocalAuthProvider } from "./contexts";
-import { client } from "./utils/Apollo";
-
-import './global.css';
+import "./app.css";
+import { AppWrapper } from "./components/AppWrapper";
+import { ColorModeProvider } from "./contexts/ColorModeContext";
+import { AuthProvider } from "./contexts/AuthContext";
 
 export const App = () => {
   return (
-    <ApolloProvider client={client}>
-      <LocalAuthProvider>
-        <ColorModeProvider>
-          <AppWrapper />
-        </ColorModeProvider>
-      </LocalAuthProvider>
-    </ApolloProvider>
+    <AuthProvider>
+      <ColorModeProvider>
+        <AppWrapper />
+      </ColorModeProvider>
+    </AuthProvider>
   );
-}
-
+};
