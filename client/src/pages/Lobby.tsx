@@ -23,6 +23,7 @@ import { socket } from "../clients/socket";
 import type { Message } from "../types/message";
 import type { UserDTO } from "../types/user";
 import type { Game } from "../types/game";
+import { ChatInputBox, ChatPanel, Content, HeaderBox, ParticipantsPanel, Wrapper } from "./Lobby.styled";
 
 export const Lobby = () => {
   const { isLoggedIn, user } = useAuth();
@@ -140,22 +141,23 @@ export const Lobby = () => {
   if (!isLoggedIn) return null;
 
   return (
-    <div className="wrapper">
-      <div className="header"><Header /></div>
-      <div className="content">
-        <div className="chat" ref={messagesEndRef}>
+    <Wrapper>
+      <HeaderBox><Header /></HeaderBox>
+      <Content>
+        <ChatPanel ref={messagesEndRef}>
           <Typography variant="h4" gutterBottom>Lobby</Typography>
           <ChatMessages messages={messages} />
-        </div>
-        <div className="participants" ref={messagesEndRef}>
+        </ChatPanel>
+        <ParticipantsPanel ref={messagesEndRef}>
+          <Typography variant="h4" gutterBottom>Online Players</Typography>
           <Participants
             activeUsers={activeUsers}
             handleSetChallengedPlayer={setChallengedPlayer}
             handleSetShowChallengeToast={() => setShowToast((t) => ({ ...t, challengePrompt: true }))}
           />
-        </div>
-      </div>
-      <div className="chat-input">
+        </ParticipantsPanel>
+      </Content>
+      <ChatInputBox>
         <TextField
           fullWidth
           onChange={handleChatTextChange}
@@ -172,7 +174,7 @@ export const Lobby = () => {
             ),
           }}
         />
-      </div>
+      </ChatInputBox>
 
       {/* Snackbars */}
       <Snackbar
@@ -212,6 +214,6 @@ export const Lobby = () => {
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
         action={<CircularProgress size={20} />}
       />
-    </div>
+    </Wrapper>
   );
 };

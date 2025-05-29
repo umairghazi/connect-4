@@ -52,7 +52,7 @@ const MaterialUISwitch = styled(Switch)(({ theme }) => ({
   },
 }));
 
-export const Header = (): JSX.Element => {
+export const Header = () => {
   const { logout } = useAuth()
   const { setColorMode, colorMode } = useContext(ColorModeContext)
 
@@ -60,7 +60,7 @@ export const Header = (): JSX.Element => {
   const handleColorModeChange = () => setColorMode(colorMode === 'dark' ? 'light' : 'dark')
 
   return (
-    <AppBar component="nav" color="secondary">
+    <AppBar component="nav" color="primary">
       <Toolbar>
         <Typography variant="h5">Connect 4</Typography>
         <Box sx={{ flexGrow: 1 }} />

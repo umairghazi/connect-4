@@ -1,3 +1,12 @@
+import {
+  Avatar,
+  List,
+  ListItem,
+  ListItemAvatar,
+  ListItemText,
+  Typography,
+  Divider,
+} from "@mui/material";
 import { useCallback } from "react";
 import { useAuth } from "../hooks/useAuth";
 import type { UserDTO } from "../types/user";
@@ -22,19 +31,30 @@ export const Participants = (props: ParticipantsProps) => {
   );
 
   return (
-    <div className="wrapper">
+    <List dense disablePadding>
       {activeUsers
         .filter((u) => u.id !== user?.id)
-        .map((u) => (
-          <button
-            key={u.id}
-            type="button"
-            onClick={() => handleGame(u)}
-            className="participant-button"
-          >
-            {u.displayName}
-          </button>
+        .map((u, index) => (
+          <>
+            <ListItem
+              key={u.id}
+              onClick={() => handleGame(u)}
+              sx={{ borderRadius: 2, paddingY: 1 }}
+            >
+              <ListItemAvatar>
+                <Avatar alt={u.displayName} src={u.avatar || undefined} />
+              </ListItemAvatar>
+              <ListItemText
+                primary={
+                  <Typography variant="body1" fontWeight={500}>
+                    {u.displayName}
+                  </Typography>
+                }
+              />
+            </ListItem>
+            {index !== activeUsers.length - 1 && <Divider variant="inset" component="li" />}
+          </>
         ))}
-    </div>
+    </List>
   );
 };
