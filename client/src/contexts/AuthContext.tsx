@@ -1,4 +1,4 @@
-import { createContext, useEffect, useMemo, useState, ReactNode } from "react";
+import { createContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { getUser } from "../api/user";
 import type { UserDTO } from "../types/user";
 
@@ -40,20 +40,7 @@ export function AuthProvider({ children }: { readonly children: ReactNode }) {
   useEffect(() => {
     if (!token) return;
 
-    // async function requestUser() {
-    //   try {
-    //     const user = await getUser();
-    //     setUser(user);
-    //     setIsLoggedIn(true);
-    //   } catch (error) {
-    //     console.log("Error fetching user:", error);
-    //     setToken("");
-    //     setIsLoggedIn(false);
-    //     setUser(null);
-    //   }
-    // }
-    // requestUser();
-    getUser()
+    getUser({ token })
       .then((fetchedUser) => {
         setUser(fetchedUser);
         setIsLoggedIn(true);

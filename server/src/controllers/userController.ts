@@ -1,6 +1,5 @@
 import type { Request, Response } from "express";
 import { MongoConnector } from "../clients/mongoClient";
-import type { IUserDTO } from "../interfaces/UserDTO";
 import { mapUserDTOToEntity, mapUserEntityToDTO } from "../interfaces/UserMapper";
 import { UserRepo } from "../repositories/userRepo";
 
@@ -48,8 +47,8 @@ export class UserController {
     }
   }
 
-  public static async getActiveUsers(): Promise<IUserDTO[]> {
-    const { email } = { email: "" };
+  public static async getActiveUsers(req: Request, res: Response): Promise<void> {
+    const { email } = req.user ?? {};
 
     if (!email) throw new Error("Email is missing");
 
@@ -63,6 +62,6 @@ export class UserController {
 
     const activeUsersDTO = activeUsers.map((user) => mapUserEntityToDTO(user));
 
-    return activeUsersDTO;
+    res.status(200).json(activeUsersDTO);
   }
 }

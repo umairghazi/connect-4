@@ -12,7 +12,7 @@ import { KeyboardReturn } from "@mui/icons-material";
 import { useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
-import { getMessages, postLobbyMessage } from "../api/message";
+import { getMessages } from "../api/message";
 import { getGames, createGame, updateGameStatus } from "../api/game";
 import { getActiveUsers } from "../api/user";
 import { usePageTitle } from "../hooks/usePageTitle";
@@ -45,7 +45,9 @@ export const Lobby = () => {
   usePageTitle("Lobby");
 
   useEffect(() => {
-    if (!isLoggedIn) navigate("/login");
+    if (!isLoggedIn) {
+      navigate("/login");
+    }
   }, [isLoggedIn, navigate]);
 
   useEffect(() => {
@@ -106,10 +108,15 @@ export const Lobby = () => {
   const handleChatTextChange = (e: ChangeEvent<HTMLInputElement>) => setChatText(e.target.value);
 
   const handleSubmit = async () => {
-    if (!chatText.trim() || !user) return;
-    await postLobbyMessage(user.id, chatText);
-    setChatText("");
-  };
+  if (!chatText.trim()) return;
+
+  socket.emit("send-message", {
+    userId: user?.id,
+    message: chatText,
+  });
+
+  setChatText(""); // optimistic reset
+};
 
   const handleKeyDown = async (e: KeyboardEvent<HTMLDivElement>) => {
     if (e.code === "Enter") await handleSubmit();

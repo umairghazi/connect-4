@@ -19,7 +19,6 @@ export const Login = () => {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -39,11 +38,12 @@ export const Login = () => {
 
       const { token, user } = await login(email, password);
 
-      await setUserStatus(user.email, true);
+      // await setUserStatus(user.email, true);
 
       updateLoginInfo(token, user);
-    } catch (err: any) {
-      setError(err.message ?? "Login failed");
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Login failed";
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

@@ -12,6 +12,6 @@ export const env = {
     dbName: process.env.DB_NAME ?? "",
   },
   jwt: {
-    secret: process.env.JWT_SECRET ?? "",
+    secret: process.env.JWT_SECRET ?? "c4-new-secret",
   },
 };

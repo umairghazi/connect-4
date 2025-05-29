@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import { MongoConnector } from "../clients/mongoClient";
+import type { IChatDTO } from "../interfaces/ChatDTO";
 import { mapChatEntityToDTO } from "../interfaces/ChatMapper";
 import type { PostChatMessageRepoOptions } from "../repositories/chatRepo";
 import { ChatRepo } from "../repositories/chatRepo";
@@ -30,7 +31,7 @@ export class ChatController {
 
   public static async postChatMessage(req: Request, res: Response): Promise<void> {
     const { userId, message } = req.body ?? {};
-    console.log("postChatMessage called with body:", req.body);
+
     const messageObj: PostChatMessageRepoOptions = {
       userId,
       message,
@@ -42,9 +43,15 @@ export class ChatController {
 
     const messageDTO = mapChatEntityToDTO(messageData[0]);
 
-    console.log(messageDTO);
-    // pubsub?.publish('MESSAGE', { message: messageDTO });
-
     res.status(201).json(messageDTO);
+  }
+
+  public static async handleSocketChatMessage({ userId, message }: { userId: string; message: string }): Promise<IChatDTO> {
+    const messageObj: PostChatMessageRepoOptions = { userId, message };
+    const result = await chatRepo.postChatMessage(messageObj);
+
+    const messageData = await chatRepo.getChatMessages({ _id: result.id });
+    const messageDTO = mapChatEntityToDTO(messageData[0]);
+    return messageDTO;
   }
 }
