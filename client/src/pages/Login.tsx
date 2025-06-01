@@ -1,4 +1,3 @@
-import "./Login.css";
 import { EmailRounded, Password } from "@mui/icons-material";
 import {
   Button,
@@ -10,8 +9,8 @@ import {
 import { type KeyboardEvent, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { login } from "../api/auth";
-import { setUserStatus } from "../api/user";
 import { useAuth } from "../hooks/useAuth";
+import "./Login.css";
 
 export const Login = () => {
   const { isLoggedIn, updateLoginInfo } = useAuth();
@@ -37,8 +36,6 @@ export const Login = () => {
       setError("");
 
       const { token, user } = await login(email, password);
-
-      // await setUserStatus(user.email, true);
 
       updateLoginInfo(token, user);
     } catch (err) {

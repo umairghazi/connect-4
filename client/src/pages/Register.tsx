@@ -1,16 +1,16 @@
-import "./Register.css";
 import { BadgeOutlined, EmailRounded, Key, Person } from "@mui/icons-material";
 import {
   Button,
+  CircularProgress,
   InputAdornment,
   TextField,
   Typography,
-  CircularProgress,
 } from "@mui/material";
 import { type KeyboardEvent, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../hooks/useAuth";
 import { register } from "../api/auth";
+import { useAuth } from "../hooks/useAuth";
+import "./Register.css";
 
 export const Register = () => {
   const { updateLoginInfo, isLoggedIn } = useAuth();

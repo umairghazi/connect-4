@@ -1,3 +1,4 @@
+import { KeyboardReturn } from "@mui/icons-material";
 import {
   Button,
   CircularProgress,
@@ -7,16 +8,16 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { KeyboardReturn } from "@mui/icons-material";
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { ChatMessages } from "../components/ChatMessages";
+import { Header } from "../components/Header";
+import { Participants } from "../components/Participants";
+import { useActiveUsers } from "../hooks/useActiveUsers";
 import { useAuth } from "../hooks/useAuth";
 import { useChat } from "../hooks/useChat";
-import { useGameLobby } from "../hooks/useGame";
-import { useActiveUsers } from "../hooks/useActiveUsers";
+import { useGame } from "../hooks/useGame";
 import { usePageTitle } from "../hooks/usePageTitle";
-import { useNavigate } from "react-router-dom";
-import { Header } from "../components/Header";
-import { ChatMessages } from "../components/ChatMessages";
-import { Participants } from "../components/Participants";
 import {
   ChatInputBox,
   ChatPanel,
@@ -25,7 +26,6 @@ import {
   ParticipantsPanel,
   Wrapper,
 } from "./Lobby.styled";
-import { useEffect } from "react";
 
 export const Lobby = () => {
   const { isLoggedIn, user } = useAuth();
@@ -41,12 +41,12 @@ export const Lobby = () => {
     toast,
     setToast,
     game,
-    challengedPlayer,
-    setChallengedPlayer,
+    challengedPlayers,
+    setChallengedPlayers,
     handleCreateGame,
     handleAcceptGame,
     handleCancelGame,
-  } = useGameLobby(user);
+  } = useGame();
 
   const activeUsers = useActiveUsers();
 
@@ -76,7 +76,7 @@ export const Lobby = () => {
           </Typography>
           <Participants
             activeUsers={activeUsers}
-            handleSetChallengedPlayer={setChallengedPlayer}
+            handleSetChallengedPlayer={setChallengedPlayers}
             handleSetShowChallengeToast={() =>
               setToast((t) => ({ ...t, challengePrompt: true }))
             }
@@ -111,7 +111,7 @@ export const Lobby = () => {
       <Snackbar
         open={toast.challengePrompt}
         onClose={handleCancelGame}
-        message={`Challenge ${challengedPlayer?.displayName}?`}
+        message={`Challenge ${challengedPlayers?.[0]?.displayName}?`}
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
         action={[
           <Button key="yes" variant="contained" onClick={handleCreateGame}>
@@ -145,7 +145,7 @@ export const Lobby = () => {
       <Snackbar
         open={toast.challenged}
         onClose={handleCancelGame}
-        message={`You've been challenged by ${game?.player1Data?.displayName}.`}
+        message={`You've been challenged by ${game?.playerData?.[0]?.displayName}.`}
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
         action={[
           <Button key="accept" variant="contained" onClick={handleAcceptGame}>
@@ -161,7 +161,7 @@ export const Lobby = () => {
         open={toast.waiting}
         onClose={() => setToast((t) => ({ ...t, waiting: false }))}
         message={`Waiting for ${
-          game?.player2Data?.displayName ?? "opponent"
+          game?.playerData?.[0]?.displayName ?? "opponent"
         } to accept`}
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
         action={<CircularProgress size={20} />}

@@ -7,11 +7,13 @@ export function registerSocketHandlers(io: Server): void {
     console.log("User connected:", socket.id);
 
     socket.on("register-user", async (userId: string) => {
-      console.log("Registering user with ID:", userId);
       socket.data.userId = userId;
-      await UserController.handleSocketSetUserStatus(userId, true); // ✅ Set user active
+
+      socket.join(userId);
+
+      await UserController.handleSocketSetUserStatus(userId, true);
       const activeUsers = await UserController.handleSocketGetActiveUsers();
-      io.emit("active-users", activeUsers); // ✅ broadcast updated list
+      io.emit("active-users", activeUsers);
     });
 
     socket.on("get-active-users", async () => {
@@ -26,10 +28,6 @@ export function registerSocketHandlers(io: Server): void {
       } catch (err) {
         console.error("❌ Error handling socket message:", err);
       }
-    });
-
-    socket.on("new-game", (game) => {
-      io.emit("new-game", game);
     });
 
     socket.on("disconnect", async () => {

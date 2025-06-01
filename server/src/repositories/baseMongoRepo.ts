@@ -84,11 +84,8 @@ export class BaseMongoRepo {
 
     if (!doc) throw new Error("Missing document");
 
-    const now = new Date().toISOString();
     const result = await collection.insertOne({
       ...doc,
-      create_date: now,
-      update_date: now,
     });
 
     return { id: result.insertedId || null };
@@ -111,13 +108,13 @@ export class BaseMongoRepo {
     const collection = await this.collection;
 
     const result = await collection.updateOne(query, {
-      $set: { ...update, update_date: new Date().toISOString() },
+      $set: { ...update },
     });
 
     return { count: result.modifiedCount || 0 };
   }
 
-  async updateMany<T>(query: object, update: T, operator?: UpdateOperator): Promise<UpdateResult> {
+  async updateMany(query: object, update: Partial<Record<string, any>>, operator?: UpdateOperator): Promise<UpdateResult> {
     if (!query || (!update && !operator)) {
       throw new Error("Missing required params");
     }
@@ -125,7 +122,7 @@ export class BaseMongoRepo {
     const collection = await this.collection;
 
     const result = await collection.updateMany(query, {
-      $set: { ...update, update_date: new Date().toISOString() },
+      $set: { ...update },
       ...operator,
     });
 

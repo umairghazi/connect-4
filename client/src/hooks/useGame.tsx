@@ -1,13 +1,17 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { socket } from "../clients/socket";
-import { createGame, updateGameStatus } from "../api/game";
+import { createGame, acceptGameChallenge } from "../api/game";
 import type { UserDTO } from "../types/user";
 import type { Game } from "../types/game";
+import { useAuth } from "./useAuth";
 
-export function useGameLobby(user?: UserDTO | null) {
+export function useGame() {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+
   const [games, setGames] = useState<Game[]>([]);
-  const [challengedPlayer, setChallengedPlayer] = useState<UserDTO | null>(null);
+  const [challengedPlayers, setChallengedPlayers] = useState<UserDTO[]>([]);
   const [toast, setToast] = useState({
     existing: false,
     waiting: false,
@@ -15,23 +19,34 @@ export function useGameLobby(user?: UserDTO | null) {
     challengePrompt: false,
   });
 
-  const navigate = useNavigate();
-
   useEffect(() => {
-    const gameListener = (game: Game) => setGames((prev) => [...prev, game]);
+    if (!user) return;
+
+    const gameListener = (game: Game) => {
+
+      setGames((prev) => {
+        const exists = prev.some((g) => g.id === game.id);
+        return exists ? prev : [...prev, game];
+      });
+
+      if (game.playerIds.includes(user.id)) {
+        if (game.gameStatus === "CHALLENGED" && game.startedBy !== user.id) {
+          setToast((t) => ({ ...t, challenged: true }));
+        } else if (game.gameStatus === "IN_PROGRESS") {
+          navigate(`/game/${game.id}`);
+        }
+      }
+    };
+
     socket.on("new-game", gameListener);
     return () => {
       socket.off("new-game", gameListener);
     };
-  }, []);
+  }, [navigate, user]);
 
-  const game = games.find(
-    (g) => ["CHALLENGED", "IN_PROGRESS"].includes(g.gameStatus) &&
-      (g.player1Id === user?.id || g.player2Id === user?.id)
-  );
-
+  const game = games.find((g) => ["CHALLENGED", "IN_PROGRESS"].includes(g.gameStatus) && g.playerIds?.includes(user?.id ?? ""));
   const isInGame = game?.gameStatus === "IN_PROGRESS";
-  const amIChallenged = game?.gameStatus === "CHALLENGED" && game?.player2Id === user?.id;
+  const amIChallenged = game?.gameStatus === "CHALLENGED" && game?.playerIds?.includes(user?.id ?? "") && game?.startedBy !== user?.id;
 
   useEffect(() => {
     if (isInGame) setToast((t) => ({ ...t, existing: true }));
@@ -39,21 +54,24 @@ export function useGameLobby(user?: UserDTO | null) {
   }, [isInGame, amIChallenged]);
 
   useEffect(() => {
-    if (toast.waiting && game?.gameStatus === "IN_PROGRESS") {
+    if (game?.gameStatus === "IN_PROGRESS") {
       navigate(`/game/${game.id}`);
     }
-  }, [toast.waiting, game?.gameStatus, game?.id, navigate]);
+  }, [game?.gameStatus, game?.id, navigate]);
 
   const handleCreateGame = useCallback(async () => {
-    if (!challengedPlayer || !user) return;
-    await createGame(user.id, challengedPlayer.id);
-    setChallengedPlayer(null);
+    if (!challengedPlayers.length || !user) return;
+
+    const allPlayerIds = [user.id, ...challengedPlayers.map((p) => p.id)];
+    await createGame(user.id, allPlayerIds);
+
+    setChallengedPlayers([]);
     setToast((t) => ({ ...t, challengePrompt: false, waiting: true }));
-  }, [challengedPlayer, user]);
+  }, [challengedPlayers, user]);
 
   const handleAcceptGame = async () => {
     if (!game || !user) return;
-    await updateGameStatus(game.id, "IN_PROGRESS");
+    await acceptGameChallenge(game.id, game.playerIds);
     navigate(`/game/${game.id}`);
   };
 
@@ -64,8 +82,8 @@ export function useGameLobby(user?: UserDTO | null) {
     game,
     toast,
     setToast,
-    challengedPlayer,
-    setChallengedPlayer,
+    challengedPlayers,
+    setChallengedPlayers,
     handleCreateGame,
     handleAcceptGame,
     handleCancelGame,

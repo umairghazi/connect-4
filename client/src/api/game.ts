@@ -7,16 +7,16 @@ export function getGames(player1Id: string, player2Id?: string): Promise<Game[]>
   return request(`/games?${params}`);
 }
 
-export function createGame(player1Id: string, player2Id: string): Promise<Game> {
+export function createGame(startedBy: string, playerIds: string[]): Promise<Game> {
   return request("/games", {
     method: "POST",
-    body: JSON.stringify({ player1Id, player2Id }),
+    body: JSON.stringify({ playerIds, startedBy }),
   });
 }
 
-export function updateGameStatus(id: string, status: string): Promise<Game> {
-  return request(`/games/${id}`, {
+export function acceptGameChallenge(gameId: string, playerIds: string[]): Promise<Game> {
+  return request(`/games/${gameId}/accept`, {
     method: "PATCH",
-    body: JSON.stringify({ gameStatus: status }),
+    body: JSON.stringify({ playerIds }),
   });
 }

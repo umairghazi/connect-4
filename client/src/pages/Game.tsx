@@ -2,7 +2,7 @@ import "./Game.css";
 import { Typography } from "@mui/material";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { getGames, updateGameStatus } from "../api/game";
+import { getGames } from "../api/game";
 import { useAuth } from "../hooks/useAuth";
 import { usePageTitle } from "../hooks/usePageTitle";
 import { ChatMessages } from "../components/ChatMessages";

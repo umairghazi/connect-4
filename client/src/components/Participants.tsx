@@ -1,11 +1,11 @@
 import {
   Avatar,
+  Divider,
   List,
   ListItem,
   ListItemAvatar,
   ListItemText,
   Typography,
-  Divider,
 } from "@mui/material";
 import { useCallback } from "react";
 import { useAuth } from "../hooks/useAuth";
@@ -14,7 +14,7 @@ import { stringAvatar } from "../utils/chatUtils";
 
 interface ParticipantsProps {
   activeUsers: UserDTO[];
-  handleSetChallengedPlayer: (player: UserDTO) => void;
+  handleSetChallengedPlayer: (players: UserDTO[]) => void;
   handleSetShowChallengeToast: (show: boolean) => void;
 }
 
@@ -22,12 +22,11 @@ export const Participants = (props: ParticipantsProps) => {
   const { activeUsers, handleSetChallengedPlayer, handleSetShowChallengeToast } = props;
   const { user } = useAuth();
 
-  const handleGame = useCallback(
-    (opponent: UserDTO) => {
-      if (!user || user.id === opponent.id) return;
-      handleSetChallengedPlayer(opponent);
-      handleSetShowChallengeToast(true);
-    },
+  const handleGame = useCallback((opponent: UserDTO) => {
+    if (!user || user.id === opponent.id) return;
+    handleSetChallengedPlayer([opponent]);
+    handleSetShowChallengeToast(true);
+  },
     [handleSetChallengedPlayer, handleSetShowChallengeToast, user]
   );
 

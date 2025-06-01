@@ -4,18 +4,15 @@ import type { UserDTO } from "../types/user";
 import { useAuth } from "./useAuth";
 
 export const useActiveUsers = () => {
-  const [activeUsers, setActiveUsers] = useState<UserDTO[]>([]);
   const { user } = useAuth();
+  const [activeUsers, setActiveUsers] = useState<UserDTO[]>([]);
 
   useEffect(() => {
-    console.log(user);
     if (!user?.id) return;
-    console.log("Registering user for active users:", user.id);
+
     socket.emit("register-user", user.id);
 
-    const handleActiveUsers = (users: UserDTO[]) => {
-      setActiveUsers(users);
-    };
+    const handleActiveUsers = (users: UserDTO[]) => setActiveUsers(users);
 
     socket.emit("get-active-users");
     socket.on("active-users", handleActiveUsers);
