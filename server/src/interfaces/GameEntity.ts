@@ -1,15 +1,18 @@
 import type { ObjectId } from "mongodb";
-import type { IUserEntity } from "./UserEntity";
+import type { UserEntity } from "./UserEntity";
 
-export interface IGameEntity {
-  _id?: ObjectId;
+export type GameStatus = "INITIALIZED" | "CHALLENGED" | "IN_PROGRESS" | "FINISHED";
+
+export interface GameEntity {
+  _id?: string;
   player1Id?: ObjectId;
   player2Id?: ObjectId;
-  whoseTurn?: ObjectId;
-  gameStatus?: string;
-  create_date?: string;
-  update_date?: string;
+  whoseTurn?: ObjectId | null;
+  gameStatus?: GameStatus;
+  winnerId?: ObjectId | null;
   boardData?: string;
-  player1Data?: Partial<IUserEntity>;
-  player2Data?: Partial<IUserEntity>;
+  createDate?: Date;
+  updateDate?: Date;
+  player1Data?: Partial<UserEntity>;
+  player2Data?: Partial<UserEntity>;
 }

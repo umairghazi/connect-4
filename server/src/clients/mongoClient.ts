@@ -29,6 +29,19 @@ export class Database {
   get db(): Promise<Db> {
     return this._db;
   }
+
+  get client(): Promise<MongoClient> {
+    return this._client;
+  }
+
+  async close(): Promise<void> {
+    const client = await this._client;
+    if (client) {
+      console.log("Closing MongoDB connection...");
+      await client.close();
+      console.log("MongoDB connection closed");
+    }
+  }
 }
 
 const MongoConnector = new Database();

@@ -1,8 +1,8 @@
 import { ObjectId } from "mongodb";
-import type { IUserDTO } from "./UserDTO";
-import type { IUserEntity } from "./UserEntity";
+import type { UserDTO } from "./UserDTO";
+import type { UserEntity } from "./UserEntity";
 
-export const mapUserEntityToDTO = (entity: IUserEntity): IUserDTO => {
+export const mapUserEntityToDTO = (entity: UserEntity): UserDTO => {
   return {
     ...(entity._id && { id: entity._id.toString() }),
     ...(entity.email && { email: entity.email }),
@@ -16,7 +16,7 @@ export const mapUserEntityToDTO = (entity: IUserEntity): IUserDTO => {
   };
 };
 
-export const mapUserDTOToEntity = (dto: IUserDTO): IUserEntity => {
+export const mapUserDTOToEntity = (dto: UserDTO): UserEntity => {
   return {
     ...(dto.id && { _id: new ObjectId(dto.id) }),
     ...(dto.email && { email: dto.email }),

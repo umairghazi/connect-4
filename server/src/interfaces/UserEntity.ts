@@ -1,6 +1,6 @@
 import type { ObjectId } from "mongodb";
 
-export interface IUserEntity {
+export interface UserEntity {
   _id?: ObjectId;
   email?: string;
   password?: string;

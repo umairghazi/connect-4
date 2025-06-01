@@ -7,7 +7,7 @@ interface IColorModeContext {
 
 export const ColorModeContext = createContext({} as IColorModeContext);
 
-export const ColorModeProvider = ({ children }: any) => {
+export const ColorModeProvider = ({ children }: { children: React.ReactNode }) => {
   const [colorMode, setColorMode] = useState<'light' | 'dark'>('light');
 
   const value = useMemo(() => ({ colorMode, setColorMode }), [colorMode, setColorMode]);

@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import { MongoConnector } from "../clients/mongoClient";
-import type { IChatDTO } from "../interfaces/ChatDTO";
+import type { ChatDTO } from "../interfaces/ChatDTO";
 import { mapChatEntityToDTO } from "../interfaces/ChatMapper";
 import type { PostChatMessageRepoOptions } from "../repositories/chatRepo";
 import { ChatRepo } from "../repositories/chatRepo";
@@ -46,7 +46,7 @@ export class ChatController {
     res.status(201).json(messageDTO);
   }
 
-  public static async handleSocketChatMessage({ userId, message }: { userId: string; message: string }): Promise<IChatDTO> {
+  public static async handleSocketChatMessage({ userId, message }: { userId: string; message: string }): Promise<ChatDTO> {
     const messageObj: PostChatMessageRepoOptions = { userId, message };
     const result = await chatRepo.postChatMessage(messageObj);
 

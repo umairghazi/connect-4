@@ -10,6 +10,7 @@ import {
 import { useCallback } from "react";
 import { useAuth } from "../hooks/useAuth";
 import type { UserDTO } from "../types/user";
+import { stringAvatar } from "../utils/chatUtils";
 
 interface ParticipantsProps {
   activeUsers: UserDTO[];
@@ -31,7 +32,7 @@ export const Participants = (props: ParticipantsProps) => {
   );
 
   return (
-    <List dense disablePadding>
+    <List dense disablePadding sx={{ width: "100%", bgcolor: "background.paper", cursor: "pointer" }}>
       {activeUsers
         .filter((u) => u.id !== user?.id)
         .map((u, index) => (
@@ -42,7 +43,7 @@ export const Participants = (props: ParticipantsProps) => {
               sx={{ borderRadius: 2, paddingY: 1 }}
             >
               <ListItemAvatar>
-                <Avatar alt={u.displayName} src={u.avatar || undefined} />
+                <Avatar {...stringAvatar(u.displayName)} />
               </ListItemAvatar>
               <ListItemText
                 primary={

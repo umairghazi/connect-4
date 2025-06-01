@@ -1,11 +1,11 @@
-import type { IUserDTO } from "./UserDTO";
+import type { UserDTO } from "./UserDTO";
 
-export interface IChatDTO {
+export interface ChatDTO {
   id?: string;
   userId?: string;
   message?: string;
   timestamp?: number;
   createDate?: Date;
   updateDate?: Date;
-  user?: Partial<IUserDTO>;
+  user?: Partial<UserDTO>;
 }

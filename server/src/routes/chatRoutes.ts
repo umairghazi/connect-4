@@ -4,7 +4,7 @@ import { authenticateToken } from "../middlewares/authMiddleware";
 
 const router = Router();
 
-router.get("/messages", ChatController.getChatMessages);
-router.post("/messages", ChatController.postChatMessage);
+router.get("/messages", authenticateToken, ChatController.getChatMessages);
+router.post("/messages", authenticateToken, ChatController.postChatMessage);
 
 export default router;

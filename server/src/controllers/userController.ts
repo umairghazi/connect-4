@@ -1,6 +1,8 @@
 import type { Request, Response } from "express";
 import { MongoConnector } from "../clients/mongoClient";
+import type { UserDTO } from "../interfaces/UserDTO";
 import { mapUserDTOToEntity, mapUserEntityToDTO } from "../interfaces/UserMapper";
+import type { UpdateResult } from "../repositories/baseMongoRepo";
 import { UserRepo } from "../repositories/userRepo";
 
 interface GetUserQuery {
@@ -63,5 +65,15 @@ export class UserController {
     const activeUsersDTO = activeUsers.map((user) => mapUserEntityToDTO(user));
 
     res.status(200).json(activeUsersDTO);
+  }
+
+  public static async handleSocketGetActiveUsers(): Promise<UserDTO[]> {
+    const result = await userRepo.getActiveUsers({});
+    return result.map((user) => mapUserEntityToDTO(user));
+  }
+
+  public static async handleSocketSetUserStatus(userId: string, status: boolean): Promise<UpdateResult> {
+    const result = await userRepo.setUserStatus({ userId, isActive: status });
+    return result;
   }
 }

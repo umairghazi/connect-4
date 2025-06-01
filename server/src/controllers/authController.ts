@@ -55,6 +55,8 @@ export class AuthController {
         password,
       });
 
+      await userRepo.setUserStatus({ email, isActive: true });
+
       const { user, token } = loginUserResult;
       const userDTO = mapUserEntityToDTO(user);
 

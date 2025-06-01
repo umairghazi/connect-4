@@ -1,6 +1,6 @@
 import type { Db } from "mongodb";
 import { ObjectId } from "mongodb";
-import type { IChatEntity } from "../interfaces/ChatEntity";
+import type { ChatEntity } from "../interfaces/ChatEntity";
 import type { CreateResult } from "./baseMongoRepo";
 import { BaseMongoRepo } from "./baseMongoRepo";
 
@@ -17,7 +17,7 @@ export interface PostChatMessageRepoOptions {
 }
 
 export interface IChatRepo {
-  getChatMessages(options: GetChatMessageRepoOptions): Promise<IChatEntity[]>;
+  getChatMessages(options: GetChatMessageRepoOptions): Promise<ChatEntity[]>;
   postChatMessage(options: PostChatMessageRepoOptions): Promise<CreateResult>;
 }
 
@@ -62,7 +62,7 @@ export class ChatRepo extends BaseMongoRepo implements IChatRepo {
 
     pipeline.push({
       $project: {
-        "_id": 1,
+        "_id": 0,
         "message": 1,
         "timestamp": 1,
         "user._id": 1,
@@ -76,9 +76,9 @@ export class ChatRepo extends BaseMongoRepo implements IChatRepo {
     return pipeline;
   }
 
-  public async getChatMessages(options: GetChatMessageRepoOptions): Promise<IChatEntity[]> {
+  public async getChatMessages(options: GetChatMessageRepoOptions): Promise<ChatEntity[]> {
     const stages = this._getChatMessagesStages(options);
-    return super.executeAggregate<IChatEntity>(stages);
+    return super.executeAggregate<ChatEntity>(stages);
   }
 
   public async postChatMessage(options: PostChatMessageRepoOptions): Promise<CreateResult> {

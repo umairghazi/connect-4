@@ -1,8 +1,8 @@
 import { ObjectId } from "mongodb";
-import type { IChatDTO } from "./ChatDTO";
-import type { IChatEntity } from "./ChatEntity";
+import type { ChatDTO } from "./ChatDTO";
+import type { ChatEntity } from "./ChatEntity";
 
-export const mapChatEntityToDTO = (entity: IChatEntity): IChatDTO => {
+export const mapChatEntityToDTO = (entity: ChatEntity): ChatDTO => {
   return {
     ...(entity._id && { id: entity._id.toString() }),
     ...(entity.userId && { userId: entity.userId.toString() }),
@@ -26,7 +26,7 @@ export const mapChatEntityToDTO = (entity: IChatEntity): IChatDTO => {
   };
 };
 
-export const mapChatDTOToEntity = (dto: IChatDTO): IChatEntity => {
+export const mapChatDTOToEntity = (dto: ChatDTO): ChatEntity => {
   return {
     ...(dto.id && { _id: new ObjectId(dto.id) }),
     ...(dto.userId && { userId: new ObjectId(dto.userId) }),

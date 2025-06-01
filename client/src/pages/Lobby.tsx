@@ -1,4 +1,3 @@
-import "./Lobby.css";
 import {
   Button,
   CircularProgress,
@@ -9,165 +8,97 @@ import {
   Typography,
 } from "@mui/material";
 import { KeyboardReturn } from "@mui/icons-material";
-import { useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from "react";
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
-import { getMessages } from "../api/message";
-import { getGames, createGame, updateGameStatus } from "../api/game";
-import { getActiveUsers } from "../api/user";
+import { useChat } from "../hooks/useChat";
+import { useGameLobby } from "../hooks/useGame";
+import { useActiveUsers } from "../hooks/useActiveUsers";
 import { usePageTitle } from "../hooks/usePageTitle";
+import { useNavigate } from "react-router-dom";
 import { Header } from "../components/Header";
 import { ChatMessages } from "../components/ChatMessages";
 import { Participants } from "../components/Participants";
-import { socket } from "../clients/socket";
-import type { Message } from "../types/message";
-import type { UserDTO } from "../types/user";
-import type { Game } from "../types/game";
-import { ChatInputBox, ChatPanel, Content, HeaderBox, ParticipantsPanel, Wrapper } from "./Lobby.styled";
+import {
+  ChatInputBox,
+  ChatPanel,
+  Content,
+  HeaderBox,
+  ParticipantsPanel,
+  Wrapper,
+} from "./Lobby.styled";
+import { useEffect } from "react";
 
 export const Lobby = () => {
   const { isLoggedIn, user } = useAuth();
   const navigate = useNavigate();
-
-  const [chatText, setChatText] = useState("");
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [activeUsers, setActiveUsers] = useState<UserDTO[]>([]);
-  const [games, setGames] = useState<Game[]>([]);
-
-  const [challengedPlayer, setChallengedPlayer] = useState<UserDTO | null>(null);
-  const [showToast, setShowToast] = useState({
-    existing: false,
-    waiting: false,
-    challenged: false,
-    challengePrompt: false,
-  });
-
-  const messagesEndRef = useRef(null);
-  usePageTitle("Lobby");
-
+  
   useEffect(() => {
-    if (!isLoggedIn) {
-      navigate("/login");
-    }
+    if (!isLoggedIn) navigate("/login");
   }, [isLoggedIn, navigate]);
 
-  useEffect(() => {
-    getMessages().then((messages) => {
-      setMessages(messages);
-      // if (messagesEndRef.current) {
-      //   messagesEndRef.current.scrollTop = messagesEndRef.current.scrollHeight;
-      // }
-    });
-    getActiveUsers().then((activeUsers) => {
-      setActiveUsers(activeUsers);
-    });
-    if (user?.id) {
-      getGames(user.id).then((games) => {
-        setGames(games);
-      });
-    }
+  const { messages, chatText, setChatText, sendMessage } = useChat(user?.id);
 
-    const msgListener = (msg: Message) => setMessages((prev) => [...prev, msg]);
-    const gameListener = (game: Game) => setGames((prev) => [...prev, game]);
+  const {
+    toast,
+    setToast,
+    game,
+    challengedPlayer,
+    setChallengedPlayer,
+    handleCreateGame,
+    handleAcceptGame,
+    handleCancelGame,
+  } = useGameLobby(user);
 
-    socket.on("new-message", msgListener);
-    socket.on("new-game", gameListener);
+  const activeUsers = useActiveUsers();
 
-    return () => {
-      socket.off("new-message", msgListener);
-      socket.off("new-game", gameListener);
-    };
-  }, [user?.id]);
+  usePageTitle("Lobby");
 
-  useEffect(() => {
-    const intervalUsers = setInterval(() => getActiveUsers().then(setActiveUsers), 10000);
-    const intervalGames = setInterval(() => {
-      if (user?.id) getGames(user.id).then(setGames);
-    }, 5000);
-    return () => {
-      clearInterval(intervalUsers);
-      clearInterval(intervalGames);
-    };
-  }, [user?.id]);
-
-  const game = games.find((g) => ["CHALLENGED", "IN_PROGRESS"].includes(g.gameStatus) && (g.player1Id === user?.id || g.player2Id === user?.id));
-
-  const isInGame = game?.gameStatus === "IN_PROGRESS";
-  const amIChallenged = game?.gameStatus === "CHALLENGED" && game.player2Id === user?.id;
-
-  useEffect(() => {
-    if (isInGame) setShowToast((t) => ({ ...t, existing: true }));
-    if (amIChallenged) setShowToast((t) => ({ ...t, challenged: true }));
-  }, [isInGame, amIChallenged]);
-
-  useEffect(() => {
-    if (showToast.waiting && game?.gameStatus === "IN_PROGRESS") {
-      navigate(`/game/${game.id}`);
-    }
-  }, [game, showToast.waiting, navigate]);
-
-  const handleChatTextChange = (e: ChangeEvent<HTMLInputElement>) => setChatText(e.target.value);
-
-  const handleSubmit = async () => {
-  if (!chatText.trim()) return;
-
-  socket.emit("send-message", {
-    userId: user?.id,
-    message: chatText,
-  });
-
-  setChatText(""); // optimistic reset
-};
-
-  const handleKeyDown = async (e: KeyboardEvent<HTMLDivElement>) => {
-    if (e.code === "Enter") await handleSubmit();
+  const handleKeyDown = async (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.code === "Enter") sendMessage();
   };
-
-  const handleCreateGame = async () => {
-    if (!challengedPlayer || !user) return;
-    await createGame(user.id, challengedPlayer.id);
-    setChallengedPlayer(null);
-    setShowToast((t) => ({ ...t, challengePrompt: false, waiting: true }));
-  };
-
-  const handleAcceptGame = async () => {
-    if (!game || !user) return;
-    await updateGameStatus(game.id, "IN_PROGRESS");
-    navigate(`/game/${game.id}`);
-  };
-
-  const handleCancelGame = () => setShowToast({ existing: false, waiting: false, challenged: false, challengePrompt: false });
-
-  if (!isLoggedIn) return null;
 
   return (
     <Wrapper>
-      <HeaderBox><Header /></HeaderBox>
+      <HeaderBox>
+        <Header />
+      </HeaderBox>
+
       <Content>
-        <ChatPanel ref={messagesEndRef}>
-          <Typography variant="h4" gutterBottom>Lobby</Typography>
+        <ChatPanel>
+          <Typography variant="h4" gutterBottom>
+            Lobby
+          </Typography>
           <ChatMessages messages={messages} />
         </ChatPanel>
-        <ParticipantsPanel ref={messagesEndRef}>
-          <Typography variant="h4" gutterBottom>Online Players</Typography>
+
+        <ParticipantsPanel>
+          <Typography variant="h4" gutterBottom>
+            Online Players
+          </Typography>
           <Participants
             activeUsers={activeUsers}
             handleSetChallengedPlayer={setChallengedPlayer}
-            handleSetShowChallengeToast={() => setShowToast((t) => ({ ...t, challengePrompt: true }))}
+            handleSetShowChallengeToast={() =>
+              setToast((t) => ({ ...t, challengePrompt: true }))
+            }
           />
         </ParticipantsPanel>
       </Content>
+
       <ChatInputBox>
         <TextField
           fullWidth
-          onChange={handleChatTextChange}
+          onChange={(e) => setChatText(e.target.value)}
           value={chatText}
           label="Message"
           onKeyDown={handleKeyDown}
           InputProps={{
             endAdornment: (
               <InputAdornment position="end">
-                <IconButton aria-label="submit" onClick={handleSubmit} edge="end">
+                <IconButton
+                  aria-label="submit"
+                  onClick={sendMessage}
+                  edge="end"
+                >
                   <KeyboardReturn />
                 </IconButton>
               </InputAdornment>
@@ -178,39 +109,60 @@ export const Lobby = () => {
 
       {/* Snackbars */}
       <Snackbar
-        open={showToast.challengePrompt}
+        open={toast.challengePrompt}
         onClose={handleCancelGame}
         message={`Challenge ${challengedPlayer?.displayName}?`}
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
         action={[
-          <Button key="challenge-yes" variant="contained" onClick={handleCreateGame}>Yes</Button>,
-          <Button key="challenge-cancel" variant="outlined" onClick={handleCancelGame}>Cancel</Button>,
+          <Button key="yes" variant="contained" onClick={handleCreateGame}>
+            Yes
+          </Button>,
+          <Button key="cancel" variant="outlined" onClick={handleCancelGame}>
+            Cancel
+          </Button>,
         ]}
       />
+
       <Snackbar
-        open={showToast.existing}
+        open={toast.existing}
         onClose={handleCancelGame}
         message="You have an existing game in progress."
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
         action={[
-          <Button key="go-to-game" variant="contained" onClick={() => navigate(`/game/${game?.id}`)}>Go to game</Button>,
-          <Button key="dismiss" variant="outlined" onClick={handleCancelGame}>Dismiss</Button>,
+          <Button
+            key="go"
+            variant="contained"
+            onClick={() => navigate(`/game/${game?.id}`)}
+          >
+            Go to game
+          </Button>,
+          <Button key="dismiss" variant="outlined" onClick={handleCancelGame}>
+            Dismiss
+          </Button>,
         ]}
       />
+
       <Snackbar
-        open={showToast.challenged}
+        open={toast.challenged}
         onClose={handleCancelGame}
         message={`You've been challenged by ${game?.player1Data?.displayName}.`}
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
         action={[
-          <Button key="accept" variant="contained" onClick={handleAcceptGame}>Accept</Button>,
-          <Button key="dismiss" variant="outlined" onClick={handleCancelGame}>Dismiss</Button>,
+          <Button key="accept" variant="contained" onClick={handleAcceptGame}>
+            Accept
+          </Button>,
+          <Button key="reject" variant="outlined" onClick={handleCancelGame}>
+            Dismiss
+          </Button>,
         ]}
       />
+
       <Snackbar
-        open={showToast.waiting}
-        onClose={() => setShowToast((t) => ({ ...t, waiting: false }))}
-        message={`Waiting for ${game?.player2Data?.displayName ?? "opponent"} to accept`}
+        open={toast.waiting}
+        onClose={() => setToast((t) => ({ ...t, waiting: false }))}
+        message={`Waiting for ${
+          game?.player2Data?.displayName ?? "opponent"
+        } to accept`}
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
         action={<CircularProgress size={20} />}
       />
