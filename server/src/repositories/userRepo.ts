@@ -4,7 +4,7 @@ import type { Db } from "mongodb";
 import { ObjectId } from "mongodb";
 import { env } from "../config/env";
 import type { UserEntity } from "../interfaces/UserEntity";
-import { NotFoundError, UnauthorizedError } from "../utils/http-error";
+import { NotFoundError, UnauthorizedError } from "../utils/serverUtils";
 import { BaseMongoRepo } from "./baseMongoRepo";
 
 interface RegisterUserRepoOptions {
@@ -107,6 +107,15 @@ export class UserRepo extends BaseMongoRepo {
     throw new NotFoundError("User not found");
   }
 
+  async logoutUser(token: string): Promise<void> {
+    const tokenData = jwt.decode(token);
+    if (!tokenData) throw new Error("Unable to decode token");
+    const { email } = tokenData as Record<string, string>;
+    const user = await super.getOne<UserEntity>({ email });
+    if (!user) throw new NotFoundError("User not found");
+    await super.updateOne({ _id: user._id }, { isActive: false, lastActiveAt: new Date() });
+  }
+
   async getUser(options: GetUserRepoOptions): Promise<UserEntity | null> {
     const { token, email, _id } = options;
 
@@ -144,15 +153,10 @@ export class UserRepo extends BaseMongoRepo {
   async getActiveUsers(params: GetActiveUsersRepoOptions): Promise<UserEntity[]> {
     const { email } = params;
 
-    // if (!email) throw new Error("Email is missing");
-
     return super.getList<UserEntity>(
       {
         isActive: true,
         ...(email && { email: { $ne: email } }),
-        // email: {
-        //   $ne: email,
-        // },
       },
       { limit: 100, page: 1 },
     );

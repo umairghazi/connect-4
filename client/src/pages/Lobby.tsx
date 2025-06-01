@@ -1,11 +1,7 @@
-import { KeyboardReturn } from "@mui/icons-material";
 import {
   Button,
   CircularProgress,
-  IconButton,
-  InputAdornment,
   Snackbar,
-  TextField,
   Typography,
 } from "@mui/material";
 import { useEffect } from "react";
@@ -19,23 +15,23 @@ import { useChat } from "../hooks/useChat";
 import { useGame } from "../hooks/useGame";
 import { usePageTitle } from "../hooks/usePageTitle";
 import {
-  ChatInputBox,
   ChatPanel,
   Content,
   HeaderBox,
   ParticipantsPanel,
   Wrapper,
 } from "./Lobby.styled";
+import { ChatInputBox } from "../components/ChatInputBox";
 
 export const Lobby = () => {
   const { isLoggedIn, user } = useAuth();
   const navigate = useNavigate();
-  
+
   useEffect(() => {
     if (!isLoggedIn) navigate("/login");
   }, [isLoggedIn, navigate]);
 
-  const { messages, chatText, setChatText, sendMessage } = useChat(user?.id);
+  const { messages, chatText, setChatText, sendMessage, handleKeyDown } = useChat(user?.id);
 
   const {
     toast,
@@ -51,10 +47,6 @@ export const Lobby = () => {
   const activeUsers = useActiveUsers();
 
   usePageTitle("Lobby");
-
-  const handleKeyDown = async (e: React.KeyboardEvent<HTMLDivElement>) => {
-    if (e.code === "Enter") sendMessage();
-  };
 
   return (
     <Wrapper>
@@ -84,28 +76,12 @@ export const Lobby = () => {
         </ParticipantsPanel>
       </Content>
 
-      <ChatInputBox>
-        <TextField
-          fullWidth
-          onChange={(e) => setChatText(e.target.value)}
-          value={chatText}
-          label="Message"
-          onKeyDown={handleKeyDown}
-          InputProps={{
-            endAdornment: (
-              <InputAdornment position="end">
-                <IconButton
-                  aria-label="submit"
-                  onClick={sendMessage}
-                  edge="end"
-                >
-                  <KeyboardReturn />
-                </IconButton>
-              </InputAdornment>
-            ),
-          }}
-        />
-      </ChatInputBox>
+      <ChatInputBox
+        chatText={chatText}
+        setChatText={setChatText}
+        sendMessage={sendMessage}
+        handleKeyDown={handleKeyDown}
+      />
 
       {/* Snackbars */}
       <Snackbar
@@ -160,9 +136,8 @@ export const Lobby = () => {
       <Snackbar
         open={toast.waiting}
         onClose={() => setToast((t) => ({ ...t, waiting: false }))}
-        message={`Waiting for ${
-          game?.playerData?.[0]?.displayName ?? "opponent"
-        } to accept`}
+        message={`Waiting for ${game?.playerData?.[0]?.displayName ?? "opponent"
+          } to accept`}
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
         action={<CircularProgress size={20} />}
       />

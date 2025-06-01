@@ -21,7 +21,6 @@ interface ParticipantsProps {
 export const Participants = (props: ParticipantsProps) => {
   const { activeUsers, handleSetChallengedPlayer, handleSetShowChallengeToast } = props;
   const { user } = useAuth();
-
   const handleGame = useCallback((opponent: UserDTO) => {
     if (!user || user.id === opponent.id) return;
     handleSetChallengedPlayer([opponent]);
@@ -35,7 +34,7 @@ export const Participants = (props: ParticipantsProps) => {
       {activeUsers
         .filter((u) => u.id !== user?.id)
         .map((u, index) => (
-          <>
+          <div key={u.id}>
             <ListItem
               key={u.id}
               onClick={() => handleGame(u)}
@@ -53,7 +52,7 @@ export const Participants = (props: ParticipantsProps) => {
               />
             </ListItem>
             {index !== activeUsers.length - 1 && <Divider variant="inset" component="li" />}
-          </>
+          </div>
         ))}
     </List>
   );

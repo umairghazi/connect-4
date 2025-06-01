@@ -69,7 +69,7 @@ export class UserController {
 
   public static async handleSocketGetActiveUsers(): Promise<UserDTO[]> {
     const result = await userRepo.getActiveUsers({});
-    return result.map((user) => mapUserEntityToDTO(user));
+    return result.map(mapUserEntityToDTO);
   }
 
   public static async handleSocketSetUserStatus(userId: string, status: boolean): Promise<UpdateResult> {

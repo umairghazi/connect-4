@@ -17,17 +17,22 @@ export function registerSocketHandlers(io: Server): void {
     });
 
     socket.on("get-active-users", async () => {
-      const userIds = await UserController.handleSocketGetActiveUsers();
-      socket.emit("active-users", userIds);
+      const users = await UserController.handleSocketGetActiveUsers();
+      socket.emit("active-users", users);
     });
 
-    socket.on("send-message", async ({ userId, message }) => {
+    socket.on("send-message", async ({ userId, message, gameId }) => {
       try {
-        const messageDTO = await ChatController.handleSocketChatMessage({ userId, message });
+        const messageDTO = await ChatController.handleSocketChatMessage({ userId, message, gameId });
         io.emit("new-message", messageDTO);
       } catch (err) {
         console.error("❌ Error handling socket message:", err);
       }
+    });
+
+    socket.on("game-chat", async ({ gameId, userId, message }) => {
+      const savedMessage = await ChatController.handleSocketChatMessage({ userId, gameId, message });
+      io.to(`game:${gameId}`).emit("game-chat", savedMessage); // broadcast to all in game room
     });
 
     socket.on("disconnect", async () => {
@@ -38,6 +43,10 @@ export function registerSocketHandlers(io: Server): void {
         const activeUsers = await UserController.handleSocketGetActiveUsers();
         io.emit("active-users", activeUsers);
       }
+    });
+
+    socket.on("join-game", (gameId) => {
+      socket.join(`game:${gameId}`);
     });
   });
 }

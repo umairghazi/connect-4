@@ -2,15 +2,16 @@ import type { UserDTO } from "./user";
 
 export interface Game {
   id: string;
-  startedBy: string
-  playerIds: string[];
-  playerData?: UserDTO[];
-  gameStatus: "CHALLENGED" | "IN_PROGRESS" | "COMPLETED" | string;
-  whoseTurn: string | null;
-  winnerId: string | null;
-  boardData: string;
+  boardData: string[][];
   createDate: string;
+  currentTurnIndex: number;
+  gameStatus: string;
+  playerData?: UserDTO[];
+  playerIds: string[];
+  startedBy: string
   updateDate: string;
+  winnerId: string | null;
+  colorToCheck?: string;
 }
 
 export interface Cell {

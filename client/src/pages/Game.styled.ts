@@ -27,23 +27,37 @@ export const Content = styled(Box)(() => ({
   overflowY: 'auto',
 }));
 
-export const ChatPanel = styled(Paper)(() => ({
+export const GamePanel = styled(Paper)(() => ({
   flex: 2,
   padding: 24,
   display: 'flex',
   flexDirection: 'column',
+  gap: 16,
   overflowY: 'auto',
 }));
 
-export const ParticipantsPanel = styled(Paper)(() => ({
+export const ChatPanel = styled(Paper)(() => ({
   flex: 1,
-  padding: 24,
-  overflowY: 'auto',
+  display: 'flex',
+  flexDirection: 'column',
 }));
 
-export const ToastPaperStyles = {
-  backgroundColor: 'background.paper',
-  color: 'text.primary',
-  borderRadius: 2,
-  boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)',
-};
+export const ChatMessagesBox = styled(Box)(() => ({
+  flex: 1,
+  overflowY: 'auto',
+  paddingRight: 8,
+}));
+
+export const ChatInputWrapper = styled(Box)(() => ({
+  marginTop: 8,
+  // borderTop: '1px solid #ccc',
+  paddingTop: 8,
+}));
+
+export const GameOverBox = styled(Box)(({ theme }) => ({
+  padding: 16,
+  backgroundColor: theme.palette.background.paper,
+  borderRadius: 8,
+  boxShadow: '0 2px 6px rgba(0, 0, 0, 0.05)',
+  textAlign: 'center',
+}));

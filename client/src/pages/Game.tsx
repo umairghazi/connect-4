@@ -1,26 +1,39 @@
-import "./Game.css";
-import { Typography } from "@mui/material";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { getGames } from "../api/game";
+import { Typography } from "@mui/material";
+import { getGame, updateGame } from "../api/game";
 import { useAuth } from "../hooks/useAuth";
 import { usePageTitle } from "../hooks/usePageTitle";
 import { ChatMessages } from "../components/ChatMessages";
 import { Header } from "../components/Header";
-import type { Cell } from "../types/game";
+import {
+  Wrapper,
+  HeaderBox,
+  Content,
+  GamePanel,
+  ChatPanel,
+  GameOverBox,
+  ChatMessagesBox,
+  ChatInputWrapper,
+} from "./Game.styled";
+import type { Cell, Game } from "../types/game";
+import { socket } from "../clients/socket";
+import { ChatInputBox } from "../components/ChatInputBox";
+import { useChat } from "../hooks/useChat";
 
 const BOARD_HEIGHT = 8;
 const BOARD_WIDTH = 8;
+const COLORS = ["R", "B", "G", "Y", "P", "O"]; // match with backend logic
 
-export const Game = () => {
+export const GamePage = () => {
   const navigate = useNavigate();
   const { id } = useParams();
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { isLoggedIn, user } = useAuth();
+  const { user, isLoggedIn } = useAuth();
   const userId = user?.id;
+  const [game, setGame] = useState<Game>();
+  const [board, setBoard] = useState<Cell[][]>([]);
 
-  const [boardState, setBoardState] = useState<Cell[][]>([]);
-  const [game, setGame] = useState<any>(null);
+  const { messages, chatText, setChatText, sendMessage, handleKeyDown } = useChat(user?.id, game?.id);
 
   usePageTitle("Game");
 
@@ -29,23 +42,43 @@ export const Game = () => {
   }, [isLoggedIn, navigate]);
 
   useEffect(() => {
+    if (id && socket) {
+      socket.emit("join-game", id);
+
+      const onGameUpdated = (updatedGame: Game) => {
+        setGame(updatedGame);
+      };
+
+      socket.on("game-updated", onGameUpdated);
+
+      return () => {
+        socket.off("game-updated", onGameUpdated);
+        socket.emit("leave-game", id);
+      };
+    }
+  }, [id]);
+
+  useEffect(() => {
     if (!id) return;
 
     const fetchGame = async () => {
-      const games = await getGames("", "");
-      const found = games.find((g) => g.id === id);
-      if (!found) navigate("/lobby");
-      else setGame(found);
+      try {
+        const game = await getGame(id);
+        if (!game) navigate("/lobby");
+        else setGame(game);
+      }
+      catch (error) {
+        console.error("Failed to fetch game:", error);
+        navigate("/lobby");
+      }
     };
 
     fetchGame();
-    const interval = setInterval(fetchGame, 1000);
-    return () => clearInterval(interval);
   }, [id, navigate]);
 
   useEffect(() => {
-    const initBoard = (): Cell[][] => {
-      return Array.from({ length: BOARD_HEIGHT }, (_, i) =>
+    const initBoard = (): Cell[][] =>
+      Array.from({ length: BOARD_HEIGHT }, (_, i) =>
         Array.from({ length: BOARD_WIDTH }, (_, j) => ({
           row: i,
           col: j,
@@ -54,86 +87,104 @@ export const Game = () => {
           isOccupied: false,
         }))
       );
-    };
 
-    const newBoard = deserializeGameState(game?.boardData);
-    setBoardState(newBoard?.length ? newBoard : initBoard());
-  }, [game?.boardData]);
+    if (!game) return;
 
-  const serializeGameState = (state: Cell[][]) =>
-    state.map((row) => row.map(({ value }) => value || "").join("-")).join("|");
+    const boardFromData = game.boardData?.length
+      ? game.boardData.map((row, i) =>
+        row.map((value, j) => ({
+          row: i,
+          col: j,
+          id: `${i}-${j}`,
+          value,
+          isOccupied: !!value,
+        }))
+      )
+      : initBoard();
 
-  const deserializeGameState = (data?: string): Cell[][] => {
-    if (!data) return [];
-    return data.split("|").map((row, i) =>
-      row.split("-").map((value, j) => ({
-        row: i,
-        col: j,
-        id: `${i}-${j}`,
-        value: value || null,
-        isOccupied: !!value,
-      }))
-    );
-  };
+    setBoard(boardFromData);
+  }, [game]);
 
-  const isPlayersTurn = userId === game?.whoseTurn;
-  const isGameOver = game?.gameStatus === "COMPLETED";
-  const colorForPlayer = userId === game?.player1Id ? "R" : "B";
-  const winner =
-    game?.winnerId === game?.player1Id
-      ? game?.player1Data?.displayName
-      : game?.player2Data?.displayName;
+  const myIndex = game?.playerIds?.indexOf(userId ?? "") ?? -1;
+  const myColor = myIndex >= 0 ? COLORS[myIndex] : "X";
 
-  const handleDropPiece = (cell: Cell) => {
+  const currentTurnIndex = game?.currentTurnIndex ?? 0;
+  const currentPlayerId = game?.playerIds?.[currentTurnIndex] ?? "";
+  const currentPlayerIndex = game?.playerIds?.indexOf(currentPlayerId) ?? -1;
+  const currentPlayer = currentPlayerIndex >= 0 ? game?.playerData?.[currentPlayerIndex] : null;
+
+  const winnerIndex = game?.playerIds?.indexOf(game?.winnerId ?? "") ?? -1;
+  const winner = winnerIndex >= 0 ? game?.playerData?.[winnerIndex] : null;
+
+  const isPlayersTurn = currentPlayerId === userId;
+  const isGameOver = game?.gameStatus === "FINISHED";
+
+  const currentTurnDisplayName = currentPlayer?.displayName ?? "Unknown";
+
+  const dropPiece = async (cell: Cell) => {
     if (!isPlayersTurn || isGameOver) return;
 
     const col = cell.col;
+    // Check if column is valid
     let row = BOARD_HEIGHT - 1;
-    while (row >= 0 && boardState[row][col].isOccupied) row--;
+    // Find the lowest empty cell in the column
+    while (row >= 0 && board[row][col].isOccupied) row--;
+    // If no empty cell found, return
     if (row < 0) return;
 
-    const newBoard = boardState.map((r) => r.map((c) => ({ ...c })));
-    newBoard[row][col].value = colorForPlayer;
+    // Clone and update local board state
+    const newBoard = board.map((r) => r.map((c) => ({ ...c })));
+    newBoard[row][col].value = myColor;
     newBoard[row][col].isOccupied = true;
-    setBoardState(newBoard);
+    setBoard(newBoard);
 
-    // updateGameStatus(game.id, {
-    //   whoseTurn: userId === game.player1Id ? game.player2Id : game.player1Id,
-    //   boardData: serializeGameState(newBoard),
-    // });
-  };
+    try {
+      // Calculate next turn index
+      const nextTurnIndex = ((game?.currentTurnIndex ?? 0) + 1) % (game?.playerIds?.length ?? 1);
 
-  const handleCellClick = (cell: Cell) => {
-    if (!isGameOver && isPlayersTurn) handleDropPiece(cell);
-  };
 
-  const handleCellKeyDown = (
-    e: React.KeyboardEvent<HTMLButtonElement>,
-    cell: Cell
-  ) => {
-    if ((e.key === "Enter" || e.key === " ") && !isGameOver && isPlayersTurn) {
-      e.preventDefault();
-      handleDropPiece(cell);
+      const updatedGame = await updateGame(game!.id, {
+        id: game!.id,
+        boardData: newBoard.map(row => row.map(cell => cell.value ?? "")),
+        currentTurnIndex: nextTurnIndex,
+        colorToCheck: myColor,
+        playerIds: game!.playerIds,
+      });
+
+      // Update game state with response from backend
+      setGame(updatedGame);
+    } catch (error) {
+      console.error("Failed to update game:", error);
+      // Optionally: revert local board or show error message
     }
   };
 
   const renderBoard = () => (
-    <div className="board">
-      {boardState.map((row, rowIdx) => (
-        <div key={rowIdx} className="row">
+    <div style={{ display: "grid", gridTemplateRows: `repeat(${BOARD_HEIGHT}, 1fr)` }}>
+      {board.map((row, rowIdx) => (
+        <div key={rowIdx} style={{ display: "flex" }}>
           {row.map((cell) => (
             <button
               key={cell.id}
-              className={`cell ${isPlayersTurn ? "pointer" : ""}`}
-              onClick={() => handleCellClick(cell)}
-              onKeyDown={(e) => handleCellKeyDown(e, cell)}
-              tabIndex={0}
-              disabled={isGameOver || !isPlayersTurn}
-              aria-label={`Drop piece in column ${cell.col + 1}`}
-            >
-              {cell.value === "R" && <div className="red-piece" />}
-              {cell.value === "B" && <div className="blue-piece" />}
-            </button>
+              onClick={() => dropPiece(cell)}
+              disabled={!isPlayersTurn || isGameOver}
+              style={{
+                width: 40,
+                height: 40,
+                margin: 2,
+                borderRadius: "50%",
+                border: "1px solid #ccc",
+                backgroundColor:
+                  cell.value === "R" ? "red" :
+                    cell.value === "B" ? "blue" :
+                      cell.value === "G" ? "green" :
+                        cell.value === "Y" ? "gold" :
+                          cell.value === "P" ? "purple" :
+                            cell.value === "O" ? "orange" :
+                              "#f0f0f0",
+              }}
+              aria-label={`Cell ${cell.row},${cell.col}`}
+            />
           ))}
         </div>
       ))}
@@ -143,35 +194,46 @@ export const Game = () => {
   if (!isLoggedIn || !game) return null;
 
   return (
-    <div className="wrapper">
-      <div className="header">
+    <Wrapper>
+      <HeaderBox>
         <Header />
-      </div>
-      <div className="content">
-        <div className="chat" ref={messagesEndRef}>
+      </HeaderBox>
+
+      <Content>
+        <GamePanel>
           <Typography variant="h4" gutterBottom>
-            Game -{" "}
-            {game?.whoseTurn === game?.player1Id
-              ? game?.player1Data?.displayName
-              : game?.player2Data?.displayName}
-            's Turn
+            Game {game.playerData?.map(p => p.displayName).join(" vs ")}
           </Typography>
-          <ChatMessages messages={[]} />
-          <div className="game">
-            {renderBoard()}
-            {isGameOver && (
-              <div className="game-over">
-                <Typography variant="h4" gutterBottom>
-                  Game Over
-                </Typography>
-                <Typography variant="h5" gutterBottom>
-                  Winner: {winner}
-                </Typography>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
+          <Typography
+            component="span"
+            variant="body1"
+            sx={{ fontWeight: 500, color: "text.primary" }}
+          >{isGameOver ? "Game Over" : `Turn: ${currentTurnDisplayName}`}</Typography>
+          {renderBoard()}
+          {isGameOver && (
+            <GameOverBox>
+              <Typography variant="h6">🏁 Game Over</Typography>
+              <Typography variant="body1">
+                Winner: {winner?.displayName ?? "Unknown"}
+              </Typography>
+            </GameOverBox>
+          )}
+        </GamePanel>
+
+        <ChatPanel>
+          <ChatMessagesBox>
+            <ChatMessages messages={messages} />
+          </ChatMessagesBox>
+          <ChatInputWrapper>
+            <ChatInputBox
+              chatText={chatText}
+              setChatText={setChatText}
+              sendMessage={sendMessage}
+              handleKeyDown={handleKeyDown}
+            />
+          </ChatInputWrapper>
+        </ChatPanel>
+      </Content>
+    </Wrapper>
   );
 };

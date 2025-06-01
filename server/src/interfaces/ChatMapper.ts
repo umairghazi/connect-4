@@ -1,38 +1,29 @@
 import { ObjectId } from "mongodb";
 import type { ChatDTO } from "./ChatDTO";
 import type { ChatEntity } from "./ChatEntity";
+import type { UserEntity } from "./UserEntity";
 
-export const mapChatEntityToDTO = (entity: ChatEntity): ChatDTO => {
+export const mapChatEntityToDTO = (entity: ChatEntity & { user: UserEntity }): ChatDTO => {
   return {
-    ...(entity._id && { id: entity._id.toString() }),
-    ...(entity.userId && { userId: entity.userId.toString() }),
-    ...(entity.message && { message: entity.message }),
-    ...(entity.timestamp && { timestamp: entity.timestamp }),
-    ...(entity.create_date && { createDate: entity.create_date }),
-    ...(entity.update_date && { updateDate: entity.update_date }),
+    id: entity._id?.toString() ?? "",
+    userId: entity.userId?.toString() ?? "",
+    message: entity.message ?? "",
+    timestamp: entity.timestamp ?? 0,
+    createDate: entity.createDate,
+    updateDate: entity.updateDate,
     ...(entity.user && {
-      user: {
-        ...(entity.user._id && { id: entity.user._id.toString() }),
-        ...(entity.user.email && { email: entity.user.email }),
-        ...(entity.user.firstName && { firstName: entity.user.firstName }),
-        ...(entity.user.lastName && { lastName: entity.user.lastName }),
-        ...(entity.user.displayName && { displayName: entity.user.displayName }),
-        ...(entity.user.avatar && { avatar: entity.user.avatar }),
-        ...(entity.user.create_date && { createDate: entity.user.create_date }),
-        ...(entity.user.update_date && { updateDate: entity.user.update_date }),
-        ...(entity.user.isActive && { isActive: entity.user.isActive }),
-      },
+      user: entity.user,
     }),
   };
 };
 
 export const mapChatDTOToEntity = (dto: ChatDTO): ChatEntity => {
   return {
-    ...(dto.id && { _id: new ObjectId(dto.id) }),
-    ...(dto.userId && { userId: new ObjectId(dto.userId) }),
-    ...(dto.message && { message: dto.message }),
-    ...(dto.timestamp && { timestamp: dto.timestamp }),
-    ...(dto.createDate && { create_date: dto.createDate }),
-    ...(dto.updateDate && { update_date: dto.updateDate }),
+    _id: new ObjectId(dto.id),
+    userId: new ObjectId(dto.userId),
+    message: dto.message ?? "",
+    timestamp: dto.timestamp ?? 0,
+    createDate: dto.createDate ?? undefined,
+    updateDate: dto.updateDate ?? undefined,
   };
 };

@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 import { MongoConnector } from "../clients/mongoClient";
 import { mapGameEntityToDTO } from "../interfaces/GameMapper";
 import { GameRepo } from "../repositories/gameRepo";
+import { checkWinCondition } from "../utils/gameUtils";
 
 const db = MongoConnector.db;
 const gameRepo = new GameRepo(db);
@@ -83,16 +84,40 @@ export class GameController {
   }
 
   public static async updateGameState(req: Request, res: Response): Promise<void> {
+    const id = req.params.id;
     const updateParams = req.body;
+    const io = req.app.get("io");
 
-    if (!updateParams._id) {
+    if (!id) {
       res.status(400).json({ error: "Game ID is required to update state." });
       return;
     }
 
     try {
+      const isWin = checkWinCondition(updateParams.boardData, updateParams.colorToCheck);
+
+      if (isWin) {
+        updateParams.gameStatus = "FINISHED";
+        updateParams.winnerId = updateParams.playerIds[Number(updateParams.currentTurnIndex)];
+      } else {
+        updateParams.gameStatus = "IN_PROGRESS";
+      }
+
       const updated = await gameRepo.updateGameState(updateParams);
-      res.status(200).json(updated);
+      if (!updated) {
+        res.status(404).json({ error: "Game not found or could not be updated" });
+        return;
+      }
+
+      const game = await gameRepo.getGameById(id);
+      if (!game) {
+        res.status(404).json({ error: "Game not found after update" });
+        return;
+      }
+
+      const gameDTO = mapGameEntityToDTO(game);
+      io.to(`game:${id}`).emit("game-updated", gameDTO);
+      res.status(200).json(gameDTO);
     } catch (err) {
       console.error("Error updating game state:", err);
       res.status(500).json({ error: "Failed to update game state" });
@@ -131,7 +156,8 @@ export class GameController {
         return;
       }
 
-      res.status(200).json(game);
+      const gameDTO = mapGameEntityToDTO(game);
+      res.status(200).json(gameDTO);
     } catch (err) {
       console.error("Error fetching game by ID:", err);
       res.status(500).json({ error: "Failed to fetch game" });

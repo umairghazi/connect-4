@@ -3,13 +3,14 @@ import type { UserDTO } from "./UserDTO";
 
 export interface GameDTO {
   id: string;
-  startedBy: string;
-  playerIds?: string[];
-  currentTurnIndex: number;
-  winnerId?: string | null;
-  gameStatus?: GameStatus | null;
-  boardData?: string;
+  boardData?: string[][];
   createDate?: Date;
-  updateDate?: Date;
+  currentTurnIndex: number;
+  gameStatus?: GameStatus | null;
   playerData?: UserDTO[];
+  playerIds?: string[];
+  startedBy: string;
+  updateDate?: Date;
+  winnerId?: string | null;
+  colorToCheck?: string;
 }

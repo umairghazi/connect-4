@@ -8,8 +8,9 @@ export interface GameEntity {
   playerIds?: ObjectId[];
   currentTurnIndex: number;
   gameStatus: GameStatus | null;
-  boardData: string;
+  boardData: string[][];
   winnerId: ObjectId | null;
   createDate: Date;
   updateDate: Date;
+  colorToCheck?: string;
 }

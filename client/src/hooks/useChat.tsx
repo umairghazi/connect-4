@@ -3,13 +3,13 @@ import { getMessages } from "../api/message";
 import { socket } from "../clients/socket";
 import type { Message } from "../types/message";
 
-export function useChat(userId?: string) {
+export function useChat(userId?: string, gameId?: string) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [chatText, setChatText] = useState("");
 
   useEffect(() => {
-    getMessages().then(setMessages);
-  }, []);
+    getMessages(gameId).then(setMessages);
+  }, [gameId]);
 
   useEffect(() => {
     const msgListener = (msg: Message) => setMessages((prev) => [...prev, msg]);
@@ -21,8 +21,12 @@ export function useChat(userId?: string) {
 
   const sendMessage = () => {
     if (!chatText.trim() || !userId) return;
-    socket.emit("send-message", { userId, message: chatText });
+    socket.emit("send-message", { userId, message: chatText, gameId });
     setChatText("");
+  };
+
+   const handleKeyDown = async (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.code === "Enter") sendMessage();
   };
 
   return {
@@ -30,5 +34,6 @@ export function useChat(userId?: string) {
     chatText,
     setChatText,
     sendMessage,
+    handleKeyDown,
   };
 }

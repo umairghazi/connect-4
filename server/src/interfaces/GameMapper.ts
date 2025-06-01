@@ -1,10 +1,10 @@
 import { ObjectId } from "mongodb";
 import type { GameDTO } from "./GameDTO";
 import type { GameEntity } from "./GameEntity";
-import type { UserDTO } from "./UserDTO";
+import type { UserEntity } from "./UserEntity";
 import { mapUserEntityToDTO } from "./UserMapper";
 
-export const mapGameEntityToDTO = (entity: GameEntity & { playerData?: UserDTO[] }): GameDTO => {
+export const mapGameEntityToDTO = (entity: GameEntity & { playerData?: UserEntity[] }): GameDTO => {
   return {
     id: entity._id?.toString() ?? "",
     startedBy: entity.startedBy.toString(),
@@ -15,6 +15,7 @@ export const mapGameEntityToDTO = (entity: GameEntity & { playerData?: UserDTO[]
     boardData: entity.boardData,
     createDate: entity.createDate,
     updateDate: entity.updateDate,
+    colorToCheck: entity.colorToCheck,
     ...(entity.playerData && {
       playerData: entity.playerData.map(mapUserEntityToDTO),
     }),
@@ -29,7 +30,8 @@ export const mapGameDTOToEntity = (dto: Partial<GameDTO>): GameEntity => {
     currentTurnIndex: dto.currentTurnIndex ?? 0,
     winnerId: dto.winnerId ? new ObjectId(dto.winnerId) : null,
     gameStatus: dto.gameStatus ?? null,
-    boardData: dto.boardData ?? "",
+    boardData: dto.boardData ?? [],
+    colorToCheck: dto.colorToCheck,
     createDate: dto.createDate ?? new Date(),
     updateDate: dto.updateDate ?? new Date(),
   };

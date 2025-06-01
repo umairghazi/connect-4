@@ -9,6 +9,7 @@ interface GetChatMessagesQuery {
   userId?: string;
   startTime?: string;
   endTime?: string;
+  gameId?: string;
 }
 
 const db = MongoConnector.db;
@@ -16,12 +17,13 @@ const chatRepo = new ChatRepo(db);
 
 export class ChatController {
   public static async getChatMessages(req: Request, res: Response): Promise<void> {
-    const { userId, startTime, endTime } = (req.query as GetChatMessagesQuery) ?? {};
+    const { userId, startTime, endTime, gameId } = (req.query as GetChatMessagesQuery) ?? {};
 
     const result = await chatRepo.getChatMessages({
       userId,
       startTime,
       endTime,
+      gameId,
     });
 
     const messagesDTO = result.map(mapChatEntityToDTO);
@@ -38,7 +40,7 @@ export class ChatController {
     };
 
     const result = await chatRepo.postChatMessage(messageObj);
-    console.log("Message posted, result:", result);
+
     const messageData = await chatRepo.getChatMessages({ _id: result.id });
 
     const messageDTO = mapChatEntityToDTO(messageData[0]);
@@ -46,8 +48,16 @@ export class ChatController {
     res.status(201).json(messageDTO);
   }
 
-  public static async handleSocketChatMessage({ userId, message }: { userId: string; message: string }): Promise<ChatDTO> {
-    const messageObj: PostChatMessageRepoOptions = { userId, message };
+  public static async handleSocketChatMessage({
+    userId,
+    message,
+    gameId,
+  }: {
+    userId: string;
+    message: string;
+    gameId?: string;
+  }): Promise<ChatDTO> {
+    const messageObj: PostChatMessageRepoOptions = { userId, message, gameId };
     const result = await chatRepo.postChatMessage(messageObj);
 
     const messageData = await chatRepo.getChatMessages({ _id: result.id });

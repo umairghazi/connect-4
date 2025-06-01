@@ -2,30 +2,26 @@ import { ObjectId } from "mongodb";
 import type { UserDTO } from "./UserDTO";
 import type { UserEntity } from "./UserEntity";
 
-export const mapUserEntityToDTO = (entity: UserEntity): UserDTO => {
-  return {
-    ...(entity._id && { id: entity._id.toString() }),
-    ...(entity.email && { email: entity.email }),
-    ...(entity.firstName && { firstName: entity.firstName }),
-    ...(entity.lastName && { lastName: entity.lastName }),
-    ...(entity.displayName && { displayName: entity.displayName }),
-    ...(entity.avatar && { avatar: entity.avatar }),
-    ...(entity.create_date && { createDate: entity.create_date }),
-    ...(entity.update_date && { updateDate: entity.update_date }),
-    ...(entity.isActive && { isActive: entity.isActive }),
-  };
-};
+export const mapUserEntityToDTO = (entity: UserEntity): UserDTO => ({
+  id: entity._id?.toString(),
+  email: entity.email ?? undefined,
+  firstName: entity.firstName ?? undefined,
+  lastName: entity.lastName ?? undefined,
+  displayName: entity.displayName ?? undefined,
+  avatar: entity.avatar ?? undefined,
+  createDate: entity.createDate ?? undefined,
+  updateDate: entity.updateDate ?? undefined,
+  isActive: entity.isActive ?? undefined,
+});
 
-export const mapUserDTOToEntity = (dto: UserDTO): UserEntity => {
-  return {
-    ...(dto.id && { _id: new ObjectId(dto.id) }),
-    ...(dto.email && { email: dto.email }),
-    ...(dto.firstName && { firstName: dto.firstName }),
-    ...(dto.lastName && { lastName: dto.lastName }),
-    ...(dto.displayName && { displayName: dto.displayName }),
-    ...(dto.avatar && { avatar: dto.avatar }),
-    ...(dto.createDate && { create_date: dto.createDate }),
-    ...(dto.updateDate && { update_date: dto.updateDate }),
-    ...(dto.isActive && { isActive: dto.isActive }),
-  };
-};
+export const mapUserDTOToEntity = (dto: UserDTO): UserEntity => ({
+  _id: dto.id ? new ObjectId(dto.id) : undefined,
+  email: dto.email ?? undefined,
+  firstName: dto.firstName ?? undefined,
+  lastName: dto.lastName ?? undefined,
+  displayName: dto.displayName ?? undefined,
+  avatar: dto.avatar ?? undefined,
+  createDate: dto.createDate ?? undefined,
+  updateDate: dto.updateDate ?? undefined,
+  isActive: dto.isActive ?? undefined,
+});

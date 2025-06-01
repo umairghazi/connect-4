@@ -1,6 +1,6 @@
 import type { Db } from "mongodb";
 import { ObjectId } from "mongodb";
-import type { ChatEntity } from "../interfaces/ChatEntity";
+import type { ChatEntity, ChatEntityWithUser } from "../interfaces/ChatEntity";
 import type { CreateResult } from "./baseMongoRepo";
 import { BaseMongoRepo } from "./baseMongoRepo";
 
@@ -8,12 +8,14 @@ export interface GetChatMessageRepoOptions {
   userId?: string;
   startTime?: string;
   endTime?: string;
+  gameId?: string;
   _id?: ObjectId | null;
 }
 
 export interface PostChatMessageRepoOptions {
   userId: string;
   message: string;
+  gameId?: string;
 }
 
 export interface IChatRepo {
@@ -27,7 +29,7 @@ export class ChatRepo extends BaseMongoRepo implements IChatRepo {
   }
 
   private _getChatMessagesStages(options: GetChatMessageRepoOptions) {
-    const { startTime, endTime, _id, userId } = options;
+    const { startTime, endTime, _id, userId, gameId } = options;
 
     const pipeline: Record<string, unknown>[] = [];
     const matchStage: Record<string, unknown> = {};
@@ -41,6 +43,12 @@ export class ChatRepo extends BaseMongoRepo implements IChatRepo {
 
     if (userId) {
       matchStage.userId = new ObjectId(userId);
+    }
+
+    if (gameId) {
+      matchStage.gameId = new ObjectId(gameId);
+    } else {
+      matchStage.gameId = { $exists: false };
     }
 
     if (_id) {
@@ -62,7 +70,7 @@ export class ChatRepo extends BaseMongoRepo implements IChatRepo {
 
     pipeline.push({
       $project: {
-        "_id": 0,
+        "_id": 1,
         "message": 1,
         "timestamp": 1,
         "user._id": 1,
@@ -76,16 +84,17 @@ export class ChatRepo extends BaseMongoRepo implements IChatRepo {
     return pipeline;
   }
 
-  public async getChatMessages(options: GetChatMessageRepoOptions): Promise<ChatEntity[]> {
+  public async getChatMessages(options: GetChatMessageRepoOptions): Promise<ChatEntityWithUser[]> {
     const stages = this._getChatMessagesStages(options);
-    return super.executeAggregate<ChatEntity>(stages);
+    return super.executeAggregate<ChatEntityWithUser>(stages);
   }
 
   public async postChatMessage(options: PostChatMessageRepoOptions): Promise<CreateResult> {
-    const { userId, message } = options;
+    const { userId, gameId, message } = options;
 
     const result = super.create({
       userId: new ObjectId(userId),
+      ...(gameId && { gameId: new ObjectId(gameId) }),
       message,
       timestamp: Date.now(),
     });

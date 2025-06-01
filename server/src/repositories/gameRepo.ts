@@ -23,8 +23,6 @@ export class GameRepo extends BaseMongoRepo {
 
     return this.updateById<GameEntity>(gameId, {
       gameStatus: "IN_PROGRESS",
-      // playerIds: playerIds.map((id) => new ObjectId(id)),
-      whoseTurn: new ObjectId(playerIds[0]),
       updateDate: new Date(),
     });
   }
@@ -40,14 +38,16 @@ export class GameRepo extends BaseMongoRepo {
     const { id, boardData, gameStatus, winnerId, currentTurnIndex } = params;
     if (!id) throw new Error("Game ID is required");
 
+    const gameEntity = mapGameDTOToEntity(params);
+
     const update: Partial<GameEntity> = {
       updateDate: new Date(),
     };
 
-    if (boardData !== undefined) update.boardData = boardData;
-    if (gameStatus) update.gameStatus = gameStatus;
-    if (winnerId !== undefined) update.winnerId = winnerId ? new ObjectId(winnerId) : null;
-    if (currentTurnIndex !== undefined) update.currentTurnIndex = currentTurnIndex;
+    if (boardData !== undefined) update.boardData = gameEntity.boardData;
+    if (gameStatus) update.gameStatus = gameEntity.gameStatus;
+    if (winnerId !== undefined) update.winnerId = gameEntity.winnerId;
+    if (currentTurnIndex !== undefined) update.currentTurnIndex = gameEntity.currentTurnIndex;
 
     return this.updateById<GameEntity>(id, update);
   }

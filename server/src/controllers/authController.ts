@@ -2,8 +2,7 @@ import type { Request, Response } from "express";
 import { MongoConnector } from "../clients/mongoClient";
 import { mapUserEntityToDTO } from "../interfaces/UserMapper";
 import { UserRepo } from "../repositories/userRepo";
-import { NotFoundError, UnauthorizedError } from "../utils/http-error";
-import { ApiStatus } from "../utils/rest";
+import { ApiStatus, NotFoundError, UnauthorizedError } from "../utils/serverUtils";
 
 const db = MongoConnector.db;
 const userRepo = new UserRepo(db);
@@ -83,9 +82,7 @@ export class AuthController {
       return;
     }
 
-    // If you're using JWTs with stateless auth, logout is a no-op
-    // For session-based or token blacklisting, revoke the token here
-    // await userRepo.revokeToken(token); // optional, depending on implementation
+    await userRepo.logoutUser(token);
 
     res.status(200).json({ message: "Logged out successfully" });
   }

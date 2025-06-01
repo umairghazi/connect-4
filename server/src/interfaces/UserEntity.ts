@@ -8,7 +8,7 @@ export interface UserEntity {
   lastName?: string;
   displayName?: string;
   avatar?: string;
-  create_date?: string;
-  update_date?: string;
+  createDate?: string;
+  updateDate?: string;
   isActive?: boolean;
 }
