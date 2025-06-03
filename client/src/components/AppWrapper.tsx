@@ -1,0 +1,21 @@
+import { useContext, useMemo } from "react"
+import { BrowserRouter } from "react-router-dom"
+import { CssBaseline, ThemeProvider } from "@mui/material"
+import { RoutesWrapper } from "./RoutesWrapper"
+import { darkTheme, lightTheme } from "../theme"
+import { ColorModeContext } from "../contexts/ColorModeContext"
+
+export const AppWrapper = () => {
+  const { colorMode } = useContext(ColorModeContext)
+
+  const getTheme = useMemo(() => colorMode === 'dark' ? darkTheme : lightTheme, [colorMode])
+
+  return (
+    <ThemeProvider theme={getTheme}>
+      <CssBaseline />
+      <BrowserRouter>
+        <RoutesWrapper />
+      </BrowserRouter>
+    </ThemeProvider>
+  )
+}
