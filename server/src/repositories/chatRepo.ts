@@ -71,6 +71,7 @@ export class ChatRepo extends BaseMongoRepo implements IChatRepo {
     pipeline.push({
       $project: {
         "_id": 1,
+        "gameId": 1,
         "message": 1,
         "timestamp": 1,
         "user._id": 1,

@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 import { MongoConnector } from "../clients/mongoClient";
 import { mapGameEntityToDTO } from "../interfaces/GameMapper";
 import { GameRepo } from "../repositories/gameRepo";
+import { SOCKET_EVENTS } from "../socket/events";
 import { checkWinCondition } from "../utils/gameUtils";
 
 const db = MongoConnector.db;
@@ -31,7 +32,7 @@ export class GameController {
         return;
       }
       const gameDTO = mapGameEntityToDTO(game);
-      io.emit("new-game", gameDTO);
+      io.emit(SOCKET_EVENTS.GAME_NEW, gameDTO);
       res.status(201).json(gameDTO);
     } catch (err) {
       console.error("Failed to create game:", err);
@@ -57,7 +58,7 @@ export class GameController {
       }
       const updatedGameDTO = mapGameEntityToDTO(updatedGame);
       for (const playerId of playerIds) {
-        io.to(playerId).emit("new-game", updatedGameDTO);
+        io.to(`user:${playerId}`).emit(SOCKET_EVENTS.GAME_NEW, updatedGameDTO);
       }
       res.status(200).json(updatedGame);
     } catch (err) {

@@ -1,7 +1,3 @@
-import { io } from "socket.io-client";
-
-export const socket = io("http://localhost:4500");
-
 export const SOCKET_EVENTS = {
   // User
   USER_REGISTER: "user:register",
@@ -19,4 +15,8 @@ export const SOCKET_EVENTS = {
 
   // Rooms
   JOIN_ROOM: "chat:join-room",
+};
+
+export const getRoomName = (gameId?: string): string => {
+  return gameId ? `game-${gameId}` : "lobby";
 };

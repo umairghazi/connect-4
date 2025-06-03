@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { socket } from "../clients/socket";
 import { createGame, acceptGameChallenge } from "../api/game";
 import type { UserDTO } from "../types/user";
 import type { Game } from "../types/game";
 import { useAuth } from "./useAuth";
+import { useSocket } from "./useSocket";
 
 export function useGame() {
+  const { onNewGame } = useSocket();
   const navigate = useNavigate();
   const { user } = useAuth();
 
@@ -22,8 +23,7 @@ export function useGame() {
   useEffect(() => {
     if (!user) return;
 
-    const gameListener = (game: Game) => {
-
+    const listener = (game: Game) => {
       setGames((prev) => {
         const exists = prev.some((g) => g.id === game.id);
         return exists ? prev : [...prev, game];
@@ -38,11 +38,14 @@ export function useGame() {
       }
     };
 
-    socket.on("new-game", gameListener);
+    const unsubscribe = onNewGame(listener);
+
     return () => {
-      socket.off("new-game", gameListener);
+      if (typeof unsubscribe === "function") {
+        unsubscribe();
+      }
     };
-  }, [navigate, user]);
+  }, [navigate, onNewGame, user]);
 
   const game = games.find((g) => ["CHALLENGED", "IN_PROGRESS"].includes(g.gameStatus) && g.playerIds?.includes(user?.id ?? ""));
   const isInGame = game?.gameStatus === "IN_PROGRESS";

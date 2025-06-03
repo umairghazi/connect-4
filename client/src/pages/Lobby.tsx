@@ -31,7 +31,10 @@ export const Lobby = () => {
     if (!isLoggedIn) navigate("/login");
   }, [isLoggedIn, navigate]);
 
-  const { messages, chatText, setChatText, sendMessage, handleKeyDown } = useChat(user?.id);
+  const { messages, chatText, setChatText, sendMessage, handleKeyDown } = useChat({
+    userId: user?.id,
+    chatType: "lobby",
+  });
 
   const {
     toast,
@@ -136,7 +139,7 @@ export const Lobby = () => {
       <Snackbar
         open={toast.waiting}
         onClose={() => setToast((t) => ({ ...t, waiting: false }))}
-        message={`Waiting for ${game?.playerData?.[0]?.displayName ?? "opponent"
+        message={`Waiting for ${game?.playerData?.[1]?.displayName ?? "opponent"
           } to accept`}
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
         action={<CircularProgress size={20} />}

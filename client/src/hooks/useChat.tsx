@@ -1,39 +1,55 @@
 import { useEffect, useState } from "react";
 import { getMessages } from "../api/message";
-import { socket } from "../clients/socket";
+import { useSocket } from "./useSocket";
 import type { Message } from "../types/message";
+import { useAuth } from "./useAuth";
 
-export function useChat(userId?: string, gameId?: string) {
+export interface UseChatParams {
+  userId?: string;
+  gameId?: string;
+  chatType?: "lobby" | "game";
+}
+
+export function useChat({ userId, gameId, chatType }: UseChatParams) {
+  const { user } = useAuth();
+  const { onLobbyMessage, onGameMessage, sendMessage } = useSocket();
+
   const [messages, setMessages] = useState<Message[]>([]);
   const [chatText, setChatText] = useState("");
 
   useEffect(() => {
-    getMessages(gameId).then(setMessages);
-  }, [gameId]);
+    if (chatType === "game" && gameId) {
+      getMessages(gameId).then(setMessages);
+    } else if (chatType === "lobby") {
+      getMessages().then(setMessages);
+    }
+  }, [chatType, gameId]);
 
   useEffect(() => {
-    const msgListener = (msg: Message) => setMessages((prev) => [...prev, msg]);
-    socket.on("new-message", msgListener);
+    const listener = (msg: Message) => setMessages((prev) => [...prev, msg]);
+    const unsubscribe = chatType === "game" ? onGameMessage(listener) : onLobbyMessage(listener);
     return () => {
-      socket.off("new-message", msgListener);
+      if (typeof unsubscribe === "function") {
+        unsubscribe();
+      }
     };
-  }, []);
+  }, [chatType, onGameMessage, onLobbyMessage]);
 
-  const sendMessage = () => {
+  const handleSend = () => {
     if (!chatText.trim() || !userId) return;
-    socket.emit("send-message", { userId, message: chatText, gameId });
+    sendMessage({ user: user!, message: chatText, gameId, timestamp: Date.now(), id: crypto.randomUUID() });
     setChatText("");
   };
 
-   const handleKeyDown = async (e: React.KeyboardEvent<HTMLDivElement>) => {
-    if (e.code === "Enter") sendMessage();
+  const handleKeyDown = async (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.code === "Enter") handleSend();
   };
 
   return {
     messages,
     chatText,
     setChatText,
-    sendMessage,
+    sendMessage: handleSend,
     handleKeyDown,
   };
 }

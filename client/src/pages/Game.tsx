@@ -17,7 +17,7 @@ import {
   ChatInputWrapper,
 } from "./Game.styled";
 import type { Cell, Game } from "../types/game";
-import { socket } from "../clients/socket";
+import { socket, SOCKET_EVENTS } from "../clients/socket";
 import { ChatInputBox } from "../components/ChatInputBox";
 import { useChat } from "../hooks/useChat";
 
@@ -33,7 +33,11 @@ export const GamePage = () => {
   const [game, setGame] = useState<Game>();
   const [board, setBoard] = useState<Cell[][]>([]);
 
-  const { messages, chatText, setChatText, sendMessage, handleKeyDown } = useChat(user?.id, game?.id);
+  const { messages, chatText, setChatText, sendMessage, handleKeyDown } = useChat({
+    userId,
+    gameId: id,
+    chatType: "game",
+  });
 
   usePageTitle("Game");
 
@@ -43,7 +47,7 @@ export const GamePage = () => {
 
   useEffect(() => {
     if (id && socket) {
-      socket.emit("join-game", id);
+      socket.emit(SOCKET_EVENTS.GAME_JOIN, id);
 
       const onGameUpdated = (updatedGame: Game) => {
         setGame(updatedGame);

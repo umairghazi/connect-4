@@ -22,7 +22,6 @@ export const ChatMessages = ({ messages }: ChatMessagesProps) => {
         <ChatMessage
           key={msg.id}
           message={msg.message}
-          picture={msg.user.avatar}
           username={msg.user.displayName}
           timestamp={msg.timestamp}
         />

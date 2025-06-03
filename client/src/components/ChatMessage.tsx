@@ -10,7 +10,6 @@ import { getTimestamp, stringAvatar } from "../utils/chatUtils";
 
 interface ChatMessageProps {
   message: string;
-  picture: string;
   username: string;
   timestamp: number;
 }

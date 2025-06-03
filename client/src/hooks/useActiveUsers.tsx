@@ -1,31 +1,30 @@
 import { useEffect, useState } from "react";
-import { socket } from "../clients/socket";
 import type { UserDTO } from "../types/user";
 import { useAuth } from "./useAuth";
+import { useSocket } from "./useSocket";
 
 export const useActiveUsers = () => {
   const { user } = useAuth();
+  const { registerUser, getActiveUsers, onActiveUsers } = useSocket();
   const [activeUsers, setActiveUsers] = useState<UserDTO[]>([]);
 
   useEffect(() => {
     if (!user?.id) return;
 
-    socket.emit("register-user", user.id);
+    registerUser(user.id);
+    getActiveUsers();
 
-    const handleActiveUsers = (users: UserDTO[]) => setActiveUsers(users);
-
-    socket.emit("get-active-users");
-    socket.on("active-users", handleActiveUsers);
+    const removeListener = onActiveUsers((users) => setActiveUsers(users));
 
     const interval = setInterval(() => {
-      socket.emit("get-active-users");
+      getActiveUsers();
     }, 10000);
 
     return () => {
       clearInterval(interval);
-      socket.off("active-users", handleActiveUsers);
+      removeListener();
     };
-  }, [user]);
+  }, [getActiveUsers, onActiveUsers, registerUser, user?.id]);
 
   return activeUsers;
 };

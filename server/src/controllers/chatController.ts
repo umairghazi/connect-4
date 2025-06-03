@@ -60,7 +60,7 @@ export class ChatController {
     const messageObj: PostChatMessageRepoOptions = { userId, message, gameId };
     const result = await chatRepo.postChatMessage(messageObj);
 
-    const messageData = await chatRepo.getChatMessages({ _id: result.id });
+    const messageData = await chatRepo.getChatMessages({ _id: result.id, gameId });
     const messageDTO = mapChatEntityToDTO(messageData[0]);
     return messageDTO;
   }
