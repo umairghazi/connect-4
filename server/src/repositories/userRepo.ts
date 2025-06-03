@@ -2,7 +2,7 @@ import { compare, hash } from "bcryptjs";
 import jwt from "jsonwebtoken";
 import type { Db } from "mongodb";
 import { ObjectId } from "mongodb";
-import { env } from "../config/env";
+import { config } from "../config/config";
 import type { UserEntity } from "../interfaces/UserEntity";
 import { NotFoundError, UnauthorizedError } from "../utils/serverUtils";
 import { BaseMongoRepo } from "./baseMongoRepo";
@@ -91,7 +91,7 @@ export class UserRepo extends BaseMongoRepo {
       const isValidPassword = await compare(password, user.password);
 
       if (isValidPassword) {
-        const token = jwt.sign({ userId: user._id, email }, env.jwt.secret, {
+        const token = jwt.sign({ userId: user._id, email }, config.jwt.secret, {
           expiresIn: "24h",
         });
 

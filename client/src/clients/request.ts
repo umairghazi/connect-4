@@ -1,4 +1,5 @@
-const API_BASE_URL = "http://localhost:4500/api";
+import { config } from "../config/config";
+
 
 function getAuthTokenFromCookie(): string | null {
   const cookies = document.cookie.split("; ").reduce((acc: Record<string, string>, curr) => {
@@ -21,9 +22,10 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const response = await fetch(`${config.apiBaseUrl}${path}`, {
     ...options,
     headers,
+    credentials: "include",
   });
 
   if (!response.ok) {

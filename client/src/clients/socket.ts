@@ -1,6 +1,6 @@
 import { io } from "socket.io-client";
 
-export const socket = io("http://localhost:4500");
+export const socket = io("http://localhost:4500", { withCredentials: true });
 
 export const SOCKET_EVENTS = {
   // User

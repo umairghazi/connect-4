@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-import { env } from "../config/env";
+import { config } from "../config/config";
 
 export const authenticateToken = (req: Request, res: Response, next: NextFunction): void => {
   const { authorization } = req.headers;
@@ -11,7 +11,7 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
     return;
   }
 
-  jwt.verify(token, env.jwt.secret, (err, decoded) => {
+  jwt.verify(token, config.jwt.secret, (err, decoded) => {
     if (err) {
       res.status(403).json({ error: "uh uh uh you didn't say the magic word" });
       return;

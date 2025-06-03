@@ -1,4 +1,3 @@
-import "./app.css";
 import { AppWrapper } from "./components/AppWrapper";
 import { ColorModeProvider } from "./contexts/ColorModeContext";
 import { AuthProvider } from "./contexts/AuthContext";

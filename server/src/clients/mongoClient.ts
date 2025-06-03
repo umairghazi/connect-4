@@ -1,8 +1,8 @@
 import type { Db } from "mongodb";
 import { MongoClient } from "mongodb";
-import { env } from "../config/env";
+import { config } from "../config/config";
 
-const { mongoUri, dbName } = env.db;
+const { mongoUri, dbName } = config.db;
 
 export class Database {
   private readonly _client: Promise<MongoClient>;
