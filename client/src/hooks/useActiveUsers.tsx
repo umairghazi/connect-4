@@ -5,26 +5,22 @@ import { useSocket } from "./useSocket";
 
 export const useActiveUsers = () => {
   const { user } = useAuth();
-  const { registerUser, getActiveUsers, onActiveUsers } = useSocket();
+  const { registerUser, onActiveUsers } = useSocket();
   const [activeUsers, setActiveUsers] = useState<UserDTO[]>([]);
 
   useEffect(() => {
     if (!user?.id) return;
 
     registerUser(user.id);
-    getActiveUsers();
 
-    const removeListener = onActiveUsers((users) => setActiveUsers(users));
-
-    const interval = setInterval(() => {
-      getActiveUsers();
-    }, 10000);
+    const removeListener = onActiveUsers((users) => {
+      setActiveUsers(users);
+    });
 
     return () => {
-      clearInterval(interval);
       removeListener();
     };
-  }, [getActiveUsers, onActiveUsers, registerUser, user?.id]);
+  }, [onActiveUsers, registerUser, user?.id]);
 
   return activeUsers;
 };

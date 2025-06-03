@@ -16,6 +16,11 @@ export interface ChatMessageEvent {
   id?: string;
 }
 
+async function broadcastActiveUsers(io: Server) {
+  const activeUsers = await UserController.handleSocketGetActiveUsers();
+  io.emit(SOCKET_EVENTS.USER_ACTIVE_USERS, activeUsers);
+}
+
 export function registerSocketHandlers(io: Server): void {
   io.on("connection", (socket) => {
     console.log("🔌 User connected:", socket.id);
@@ -28,15 +33,7 @@ export function registerSocketHandlers(io: Server): void {
       console.log("User registered:", userId);
 
       await UserController.handleSocketSetUserStatus(userId, true);
-      const activeUsers = await UserController.handleSocketGetActiveUsers();
-      io.emit(SOCKET_EVENTS.USER_ACTIVE_USERS, activeUsers);
-      console.log("Active users updated after registration");
-    });
-
-    socket.on(SOCKET_EVENTS.USER_GET_ACTIVE_USERS, async () => {
-      const users = await UserController.handleSocketGetActiveUsers();
-      socket.emit(SOCKET_EVENTS.USER_ACTIVE_USERS, users);
-      console.log("Active users requested by user");
+      await broadcastActiveUsers(io);
     });
 
     socket.on("disconnect", async () => {
@@ -44,12 +41,11 @@ export function registerSocketHandlers(io: Server): void {
       console.log("User disconnected:", userId);
       if (userId) {
         await UserController.handleSocketSetUserStatus(userId, false);
-        const activeUsers = await UserController.handleSocketGetActiveUsers();
-        io.emit(SOCKET_EVENTS.USER_ACTIVE_USERS, activeUsers);
-        console.log("Active users updated after disconnect");
+        await broadcastActiveUsers(io);
       }
     });
 
+    // CHAT EVENTS
     socket.on(SOCKET_EVENTS.CHAT_MESSAGE, async (evt: ChatMessageEvent) => {
       const { user, message, gameId, timestamp, id } = evt;
       try {
