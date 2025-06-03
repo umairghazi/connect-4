@@ -1,4 +1,4 @@
 export const config = {
   apiBaseUrl: import.meta.env.VITE_API_BASE_URL ?? "",
-  apiHost: import.meta.env.VITE_API_HOST ?? "",
+  wsBaseUrl: import.meta.env.VITE_WS_BASE_URL ?? "",
 }
